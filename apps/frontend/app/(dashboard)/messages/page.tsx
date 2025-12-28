@@ -37,22 +37,15 @@ export default function MessagesPage() {
 
   const [recipient, setRecipient] = useState<User | null>(null);
 
-  // WebSocket connection
-  const { connect, send, isConnected } = useWebSocket({
-    onConnect: () => console.log("WebSocket connected"),
+  // WebSocket connection - uses singleton manager
+  // Connection is handled by WebSocketProvider automatically
+  const { send, isConnected } = useWebSocket({
     onMessage: (msg) => {
       if (msg.type === "chat:message") {
         // Message will be added by the hook automatically
       }
     },
   });
-
-  // Connect WebSocket on mount
-  useEffect(() => {
-    if (session?.user) {
-      connect();
-    }
-  }, [session, connect]);
 
   // Fetch conversations
   useEffect(() => {

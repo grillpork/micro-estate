@@ -12,7 +12,10 @@ import {
   markReadSchema,
   typingSchema,
 } from "../chat/chat.schema";
-import { markNotificationsAsRead } from "../notifications/notifications.service";
+import {
+  markNotificationsAsRead,
+  getUnreadNotificationCount,
+} from "../notifications/notifications.service";
 
 // ===== Message Handlers =====
 type MessageHandler = (
@@ -125,6 +128,19 @@ export const wsHandlers = {
         payload: { userId, userName },
       })
     );
+
+    // Send unread notification count
+    try {
+      const unreadCount = await getUnreadNotificationCount(userId);
+      ws.send(
+        JSON.stringify({
+          type: WS_MESSAGE_TYPES.NOTIFICATION_UNREAD_COUNT,
+          payload: { count: unreadCount },
+        })
+      );
+    } catch (error) {
+      console.error("[WS] Failed to get unread notification count:", error);
+    }
 
     // Broadcast user online status
     connectionManager.broadcast(

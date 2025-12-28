@@ -14,3 +14,6 @@ export {
 
 // Chat Store
 export { useChatStore } from "./features/chat/chat.store";
+
+// Notification Store
+export { useNotificationStore } from "./features/notifications/notifications.store";

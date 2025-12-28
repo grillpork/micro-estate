@@ -165,6 +165,7 @@ export const WS_MESSAGE_TYPES = {
   // Notifications
   NOTIFICATION: "notification",
   NOTIFICATION_READ: "notification:read",
+  NOTIFICATION_UNREAD_COUNT: "notification:unread_count",
 
   // Online Status
   USER_ONLINE: "user:online",

@@ -25,7 +25,8 @@ import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useSession, signOut } from "@/services";
+import { signOut } from "@/services";
+import { useUser, useIsAuthLoading } from "@/stores";
 import { NotificationDropdown } from "@/components/notification/NotificationDropdown";
 
 interface NavItem {
@@ -68,17 +69,10 @@ export function Navbar() {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { data: session, isPending } = useSession();
 
-  // Cast user with role property
-  const user = session?.user as
-    | ({ role?: string } & {
-        id: string;
-        name: string;
-        email: string;
-        image?: string | null;
-      })
-    | undefined;
+  // Use auth store instead of useSession
+  const user = useUser();
+  const isPending = useIsAuthLoading();
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";

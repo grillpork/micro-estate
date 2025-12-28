@@ -3,6 +3,8 @@
 import { Toaster } from "sonner";
 import { QueryProvider } from "./QueryProvider";
 import { ThemeProvider } from "./theme-provider";
+import { AuthProvider } from "./AuthProvider";
+import { WebSocketProvider } from "./WebSocketProvider";
 
 interface ProvidersProps {
     children: React.ReactNode;
@@ -21,7 +23,11 @@ export function Providers({ children }: ProvidersProps) {
             disableTransitionOnChange
         >
             <QueryProvider>
-                {children}
+                <AuthProvider>
+                    <WebSocketProvider>
+                        {children}
+                    </WebSocketProvider>
+                </AuthProvider>
                 <Toaster
                     position="top-right"
                     richColors

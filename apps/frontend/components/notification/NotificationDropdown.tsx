@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Bell,
@@ -20,6 +20,7 @@ import {
   notificationsService,
   type Notification,
 } from "@/stores/features/notifications/notifications.service";
+import { useNotificationStore } from "@/stores";
 import Link from "next/link";
 
 interface NotificationDropdownProps {
@@ -27,63 +28,33 @@ interface NotificationDropdownProps {
 }
 
 export function NotificationDropdown({ className }: NotificationDropdownProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasFetched, setHasFetched] = useState(false);
+  // Use notification store instead of local state
+  const {
+    notifications,
+    unreadCount,
+    isLoading,
+    isOpen,
+    hasFetched,
+    setIsOpen,
+    fetchNotifications,
+    markAsRead: storeMarkAsRead,
+    markAllAsRead: storeMarkAllAsRead,
+    removeNotification,
+  } = useNotificationStore();
 
-  // Fetch notifications
-  const fetchNotifications = useCallback(async () => {
-    if (isLoading) return;
-    setIsLoading(true);
-    try {
-      const [data, count] = await Promise.all([
-        notificationsService.getAll(10),
-        notificationsService.getUnreadCount(),
-      ]);
-      setNotifications(data.notifications);
-      setUnreadCount(count);
-      setHasFetched(true);
-    } catch (error) {
-      console.error("Failed to fetch notifications:", error);
-    } finally {
-      setIsLoading(false);
+  // Fetch notifications when dropdown opens
+  const handleToggle = useCallback(() => {
+    const newIsOpen = !isOpen;
+    setIsOpen(newIsOpen);
+    if (newIsOpen && !hasFetched) {
+      fetchNotifications();
     }
-  }, [isLoading]);
-
-  // Fetch only once on first mount (not on every render)
-  useEffect(() => {
-    if (!hasFetched) {
-      // Delay initial fetch to avoid race conditions with other requests
-      const timer = setTimeout(() => {
-        notificationsService
-          .getUnreadCount()
-          .then(setUnreadCount)
-          .catch(() => {});
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [hasFetched]);
-
-  // Poll for new notifications every 60 seconds (reduced from 30)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      notificationsService
-        .getUnreadCount()
-        .then(setUnreadCount)
-        .catch(() => {});
-    }, 60000);
-    return () => clearInterval(interval);
-  }, []);
+  }, [isOpen, hasFetched, setIsOpen, fetchNotifications]);
 
   const handleMarkAsRead = async (id: string) => {
     try {
       await notificationsService.markAsRead([id]);
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
-      );
-      setUnreadCount((prev) => Math.max(0, prev - 1));
+      storeMarkAsRead(id);
     } catch (error) {
       console.error("Failed to mark as read:", error);
     }
@@ -92,8 +63,7 @@ export function NotificationDropdown({ className }: NotificationDropdownProps) {
   const handleMarkAllAsRead = async () => {
     try {
       await notificationsService.markAllAsRead();
-      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-      setUnreadCount(0);
+      storeMarkAllAsRead();
     } catch (error) {
       console.error("Failed to mark all as read:", error);
     }
@@ -102,11 +72,7 @@ export function NotificationDropdown({ className }: NotificationDropdownProps) {
   const handleDelete = async (id: string) => {
     try {
       await notificationsService.delete(id);
-      setNotifications((prev) => prev.filter((n) => n.id !== id));
-      const notif = notifications.find((n) => n.id === id);
-      if (notif && !notif.isRead) {
-        setUnreadCount((prev) => Math.max(0, prev - 1));
-      }
+      removeNotification(id);
     } catch (error) {
       console.error("Failed to delete notification:", error);
     }
@@ -150,10 +116,7 @@ export function NotificationDropdown({ className }: NotificationDropdownProps) {
         variant="ghost"
         size="icon"
         className="relative"
-        onClick={() => {
-          setIsOpen(!isOpen);
-          if (!isOpen) fetchNotifications();
-        }}
+        onClick={handleToggle}
       >
         <Bell className="h-4 w-4" />
         {unreadCount > 0 && (
