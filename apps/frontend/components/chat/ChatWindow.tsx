@@ -30,8 +30,8 @@ interface ChatWindowProps {
   messages: Message[];
   currentUserId: string;
   recipient?:
-    | User
-    | { id: string; name: string; image?: string; isBot?: boolean };
+  | User
+  | { id: string; name: string; image?: string; isBot?: boolean };
   isLoading?: boolean;
   isSending?: boolean;
   isTyping?: boolean;
@@ -284,13 +284,13 @@ export function ChatWindow({
                     {message.content && (
                       <div
                         className={cn(
-                          "inline-block rounded-2xl px-4 py-2",
+                          "inline-block rounded-2xl px-4 py-2 wrap-break-word max-w-[600px] text-start",
                           isOwn
                             ? "bg-primary text-primary-foreground"
                             : "bg-muted"
                         )}
                       >
-                        <p className="text-sm whitespace-pre-wrap">
+                        <p className="text-sm whitespace-pre-wrap wrap-break-word max-w-[600px] text-start">
                           {message.content}
                         </p>
                       </div>
