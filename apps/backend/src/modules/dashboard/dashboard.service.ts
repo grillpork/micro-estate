@@ -33,6 +33,7 @@ export interface RecentActivity {
 export interface AgentProperty {
   id: string;
   title: string;
+  slug?: string | null;
   price: number;
   status: string;
   views: number;
@@ -104,6 +105,7 @@ export async function getAgentProperties(
     .select({
       id: properties.id,
       title: properties.title,
+      slug: properties.slug,
       price: properties.price,
       status: properties.status,
       views: properties.views,
@@ -133,6 +135,7 @@ export async function getAgentProperties(
   return props.map((prop, index) => ({
     id: prop.id,
     title: prop.title,
+    slug: prop.slug,
     price: Number(prop.price) || 0,
     status: prop.status,
     views: prop.views || 0,

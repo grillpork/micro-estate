@@ -18,6 +18,7 @@ export const bookingsService = {
         property: {
           id: properties.id,
           title: properties.title,
+          slug: properties.slug,
           price: properties.price,
           thumbnailUrl: properties.thumbnailUrl,
         },
@@ -55,6 +56,7 @@ export const bookingsService = {
         property: {
           id: properties.id,
           title: properties.title,
+          slug: properties.slug,
           price: properties.price,
           thumbnailUrl: properties.thumbnailUrl,
         },

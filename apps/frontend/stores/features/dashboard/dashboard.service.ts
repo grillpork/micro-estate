@@ -26,6 +26,7 @@ export interface RecentActivity {
 export interface DashboardProperty {
   id: string;
   title: string;
+  slug?: string;
   price: number;
   status: string;
   views: number;

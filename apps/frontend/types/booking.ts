@@ -18,6 +18,7 @@ export interface Booking {
   property?: {
     id: string;
     title: string;
+    slug?: string | null;
     price: string;
     thumbnailUrl: string | null;
   };

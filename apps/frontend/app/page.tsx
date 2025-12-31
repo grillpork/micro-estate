@@ -354,7 +354,7 @@ export default function HomePage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
                 >
-                  <Link href={`/properties/${property.id}`}>
+                  <Link href={`/properties/${property.slug || property.id}`}>
                     <Card className="group overflow-hidden transition-all hover:shadow-lg">
                       <div className="relative aspect-[4/3] overflow-hidden bg-muted">
                         {property.thumbnailUrl ? (

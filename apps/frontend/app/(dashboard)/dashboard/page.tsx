@@ -197,36 +197,36 @@ export default function AgentDashboardPage() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {isLoading
               ? [...Array(6)].map((_, i) => (
-                  <Card key={i}>
-                    <CardContent className="p-6">
-                      <Skeleton className="h-16 w-full" />
+                <Card key={i}>
+                  <CardContent className="p-6">
+                    <Skeleton className="h-16 w-full" />
+                  </CardContent>
+                </Card>
+              ))
+              : statCards.map((stat, index) => (
+                <motion.div
+                  key={stat.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                >
+                  <Card className="hover:shadow-md transition-shadow">
+                    <CardContent className="flex items-center gap-4 p-6">
+                      <div
+                        className={`flex h-12 w-12 items-center justify-center rounded-lg ${stat.color} text-white`}
+                      >
+                        {stat.icon}
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">
+                          {stat.title}
+                        </p>
+                        <p className="text-2xl font-bold">{stat.value}</p>
+                      </div>
                     </CardContent>
                   </Card>
-                ))
-              : statCards.map((stat, index) => (
-                  <motion.div
-                    key={stat.title}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                  >
-                    <Card className="hover:shadow-md transition-shadow">
-                      <CardContent className="flex items-center gap-4 p-6">
-                        <div
-                          className={`flex h-12 w-12 items-center justify-center rounded-lg ${stat.color} text-white`}
-                        >
-                          {stat.icon}
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">
-                            {stat.title}
-                          </p>
-                          <p className="text-2xl font-bold">{stat.value}</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                ))}
+                </motion.div>
+              ))}
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
@@ -257,13 +257,12 @@ export default function AgentDashboardPage() {
                         className="flex items-start gap-3 rounded-lg p-3 hover:bg-accent transition-colors"
                       >
                         <div
-                          className={`flex h-8 w-8 items-center justify-center rounded-full ${
-                            activity.type === "view"
+                          className={`flex h-8 w-8 items-center justify-center rounded-full ${activity.type === "view"
                               ? "bg-blue-500/10 text-blue-500"
                               : activity.type === "inquiry"
                                 ? "bg-green-500/10 text-green-500"
                                 : "bg-purple-500/10 text-purple-500"
-                          }`}
+                            }`}
                         >
                           {activity.type === "view" ? (
                             <Eye className="h-4 w-4" />
@@ -324,7 +323,7 @@ export default function AgentDashboardPage() {
                     {properties.map((property) => (
                       <Link
                         key={property.id}
-                        href={`/properties/${property.id}`}
+                        href={`/properties/${property.slug || property.id}`}
                         className="flex items-center gap-4 rounded-lg border p-4 transition-colors hover:bg-accent"
                       >
                         {property.thumbnail ? (

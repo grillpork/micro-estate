@@ -1,4 +1,4 @@
-import { eq, and, desc, asc, sql, ilike, gte, lte } from "drizzle-orm";
+import { eq, and, desc, asc, sql, ilike, gte, lte, or } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { db } from "../../db";
 import { properties, propertyImages } from "../../db/schema";
@@ -149,7 +149,7 @@ export async function getPropertyBySlug(slug: string) {
   const [property] = await db
     .select()
     .from(properties)
-    .where(eq(properties.slug, slug))
+    .where(or(eq(properties.slug, slug), eq(properties.id, slug)))
     .limit(1);
 
   if (!property) {

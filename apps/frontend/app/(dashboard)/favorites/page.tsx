@@ -118,7 +118,7 @@ export default function FavoritesPage() {
                   transition={{ delay: index * 0.05 }}
                 >
                   <Card className="group overflow-hidden transition-all hover:shadow-lg">
-                    <Link href={`/properties/${property.id}`}>
+                    <Link href={`/properties/${property.slug || property.id}`}>
                       <div className="relative aspect-[4/3] overflow-hidden bg-muted">
                         {property.thumbnailUrl ? (
                           <Image
@@ -145,7 +145,7 @@ export default function FavoritesPage() {
                       </div>
                     </Link>
                     <CardContent className="p-4">
-                      <Link href={`/properties/${property.id}`}>
+                      <Link href={`/properties/${property.slug || property.id}`}>
                         <h3 className="font-semibold text-lg line-clamp-1 group-hover:text-primary">
                           {property.title}
                         </h3>
@@ -153,13 +153,13 @@ export default function FavoritesPage() {
                       {(property.address ||
                         property.district ||
                         property.province) && (
-                        <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
-                          <MapPin className="h-3 w-3" />
-                          {[property.district, property.province]
-                            .filter(Boolean)
-                            .join(", ")}
-                        </p>
-                      )}
+                          <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
+                            <MapPin className="h-3 w-3" />
+                            {[property.district, property.province]
+                              .filter(Boolean)
+                              .join(", ")}
+                          </p>
+                        )}
                       <p className="mt-2 text-xl font-bold text-primary">
                         {formatPrice(Number(property.price))}
                         {property.listingType === "rent" && (
@@ -190,7 +190,7 @@ export default function FavoritesPage() {
                       </div>
                       <div className="mt-4 flex gap-2">
                         <Link
-                          href={`/properties/${property.id}`}
+                          href={`/properties/${property.slug || property.id}`}
                           className="flex-1"
                         >
                           <Button variant="outline" className="w-full">

@@ -61,7 +61,7 @@ const LISTING_TYPE_LABELS: Record<string, string> = {
 export default function PropertyDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const id = params.id as string;
+  const slug = params.slug as string;
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
@@ -72,9 +72,9 @@ export default function PropertyDetailPage() {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["property", id],
-    queryFn: () => propertiesService.getById(id),
-    enabled: !!id,
+    queryKey: ["property", slug],
+    queryFn: () => propertiesService.getBySlug(slug),
+    enabled: !!slug,
   });
 
   const [bookingDate, setBookingDate] = useState("");
@@ -99,19 +99,19 @@ export default function PropertyDetailPage() {
     openPayment({
       type: "booking_deposit",
       amount: 200,
-      propertyId: id,
+      propertyId: property!.id,
       description: `มัดจำจอง ${property?.title} สำหรับวันที่ ${new Date(bookingDate).toLocaleDateString("th-TH")}`,
     });
   };
 
   // Increment views when page is viewed
   useEffect(() => {
-    if (id && property) {
-      propertiesService.incrementViews(id).catch(() => {
+    if (property?.id) {
+      propertiesService.incrementViews(property.id).catch(() => {
         // Silently fail - views tracking is not critical
       });
     }
-  }, [id, property?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [property?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (isLoading) {
     return (
@@ -310,11 +310,10 @@ export default function PropertyDetailPage() {
                     <button
                       key={index}
                       onClick={() => setCurrentImageIndex(index)}
-                      className={`relative w-20 h-20 rounded-lg overflow-hidden shrink-0 ring-2 transition-all ${
-                        index === currentImageIndex
+                      className={`relative w-20 h-20 rounded-lg overflow-hidden shrink-0 ring-2 transition-all ${index === currentImageIndex
                           ? "ring-primary"
                           : "ring-transparent hover:ring-primary/50"
-                      }`}
+                        }`}
                     >
                       <Image
                         src={img.url}
@@ -356,9 +355,8 @@ export default function PropertyDetailPage() {
                       onClick={() => setIsFavorite(!isFavorite)}
                     >
                       <Heart
-                        className={`h-5 w-5 ${
-                          isFavorite ? "fill-red-500 text-red-500" : ""
-                        }`}
+                        className={`h-5 w-5 ${isFavorite ? "fill-red-500 text-red-500" : ""
+                          }`}
                       />
                     </Button>
                     <Button variant="outline" size="icon" onClick={handleShare}>

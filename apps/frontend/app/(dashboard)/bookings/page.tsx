@@ -34,11 +34,11 @@ export default function BookingsPage() {
   const { data: session } = useSession();
   const user = session?.user as
     | ({ role?: string } & {
-        id: string;
-        name?: string | null;
-        email: string;
-        image?: string | null;
-      })
+      id: string;
+      name?: string | null;
+      email: string;
+      image?: string | null;
+    })
     | undefined;
   const [activeTab, setActiveTab] = useState<"my" | "agent">("my");
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -303,7 +303,7 @@ export default function BookingsPage() {
                         size="sm"
                         className="w-full h-8"
                       >
-                        <Link href={`/properties/${booking.propertyId}`}>
+                        <Link href={`/properties/${booking.property?.slug || booking.propertyId}`}>
                           รายละเอียด <ChevronRight className="ml-1 h-3 w-3" />
                         </Link>
                       </Button>
