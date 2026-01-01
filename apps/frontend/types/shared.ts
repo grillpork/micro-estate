@@ -260,8 +260,13 @@ export interface PropertyFormData {
   address: string;
   district: string;
   province: string;
+  subDistrict: string;
   postalCode?: string;
   amenityIds?: string[];
+  images?: (File | string)[];
+  rai?: number;
+  ngan?: number;
+  sqWah?: number;
 }
 
 export interface DemandFormData {

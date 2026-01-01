@@ -21,6 +21,7 @@ const envSchema = z.object({
   // Frontend URL (CORS)
   FRONTEND_URL: z.string().url().default("http://localhost:3000"),
   ADMIN_URL: z.string().url().default("http://localhost:5173"),
+  CLIENT_URL: z.string().url().default("http://localhost:3005"),
 
   // Resend (Email)
   RESEND_API_KEY: z.string().optional(),

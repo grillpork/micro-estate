@@ -196,7 +196,6 @@ export default function MyDemandsPage() {
   if (isSessionLoading || isLoading) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
         <main className="container mx-auto px-4 py-8">
           <div className="mb-8 flex items-center justify-between">
             <Skeleton className="h-10 w-48" />
@@ -220,7 +219,6 @@ export default function MyDemandsPage() {
   if (!session?.user) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
         <main className="container mx-auto px-4 py-16 text-center">
           <AlertCircle className="mx-auto h-16 w-16 text-muted-foreground" />
           <h1 className="mt-4 text-2xl font-bold">กรุณาเข้าสู่ระบบ</h1>
@@ -231,15 +229,12 @@ export default function MyDemandsPage() {
             <Button className="mt-4">เข้าสู่ระบบ</Button>
           </Link>
         </main>
-        <Footer />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
-
       <main className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -349,7 +344,7 @@ export default function MyDemandsPage() {
           <div className="space-y-4">
             {demands.map((demand, index) => (
               <motion.div
-                key={demand.id}
+                key={demand.id || `my-demand-${index}`}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
@@ -401,15 +396,17 @@ export default function MyDemandsPage() {
 
                         {demand.tags && demand.tags.length > 0 && (
                           <div className="mt-3 flex flex-wrap gap-1">
-                            {demand.tags.map((tag) => (
-                              <Badge
-                                key={tag}
-                                variant="secondary"
-                                className="text-xs"
-                              >
-                                {tag}
-                              </Badge>
-                            ))}
+                            {demand.tags
+                              .filter((tag) => !!tag)
+                              .map((tag, i) => (
+                                <Badge
+                                  key={`${tag}-${i}`}
+                                  variant="secondary"
+                                  className="text-xs"
+                                >
+                                  {tag}
+                                </Badge>
+                              ))}
                           </div>
                         )}
 
@@ -464,8 +461,6 @@ export default function MyDemandsPage() {
           </div>
         )}
       </main>
-
-      <Footer />
     </div>
   );
 }

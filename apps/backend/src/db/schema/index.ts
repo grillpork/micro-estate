@@ -21,3 +21,9 @@ export * from "./demands";
 
 // Embeddings tables (pgvector)
 export * from "./embeddings";
+
+// Social Media tables
+export * from "./social";
+
+// Shorts & Follows tables
+export * from "./shorts";

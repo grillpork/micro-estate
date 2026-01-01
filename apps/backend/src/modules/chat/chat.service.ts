@@ -6,6 +6,7 @@ import { connectionManager, WS_MESSAGE_TYPES } from "../../lib/websocket";
 import type { SendMessageInput, GetMessagesInput } from "./chat.schema";
 
 // ===== Types =====
+import { deleteFile } from "../media/media.service";
 export interface MessageWithSender {
   id: string;
   content: string | null;
@@ -96,14 +97,16 @@ export async function sendMessage(
     },
   });
 
-  // Also send to sender (for multi-device sync)
-  connectionManager.sendToUser(senderId, {
-    type: WS_MESSAGE_TYPES.CHAT_MESSAGE,
-    payload: {
-      conversationId: input.receiverId, // The receiver is the conversation partner for sender
-      message: messageForFrontend,
-    },
-  });
+  // Also send to sender (for multi-device sync) - only if different from receiver
+  if (senderId !== input.receiverId) {
+    connectionManager.sendToUser(senderId, {
+      type: WS_MESSAGE_TYPES.CHAT_MESSAGE,
+      payload: {
+        conversationId: input.receiverId, // The receiver is the conversation partner for sender
+        message: messageForFrontend,
+      },
+    });
+  }
 
   return messageWithSender;
 }
@@ -390,4 +393,67 @@ export async function markConversationAsRead(
   });
 
   return messageIds.length;
+}
+
+// ===== Delete Message =====
+export async function deleteMessage(
+  userId: string,
+  messageId: string
+): Promise<boolean> {
+  // Check if message exists and user is sender
+  const [message] = await db
+    .select({
+      id: messages.id,
+      senderId: messages.senderId,
+      imageUrls: messages.imageUrls,
+      receiverId: messages.receiverId,
+    })
+    .from(messages)
+    .where(and(eq(messages.id, messageId), eq(messages.senderId, userId)));
+
+  if (!message) {
+    return false;
+  }
+
+  // Delete images from media storage (Cloudflare R2)
+  if (message.imageUrls) {
+    const urls = JSON.parse(message.imageUrls) as string[];
+    // Extract keys from URLs and delete
+    for (const url of urls) {
+      try {
+        const urlObj = new URL(url);
+        // Pathname usually starts with /
+        const key = urlObj.pathname.substring(1); // Remove leading slash
+
+        if (key) {
+          await deleteFile(key);
+        }
+      } catch (e) {
+        console.error("Failed to parse URL for deletion:", url);
+      }
+    }
+  }
+
+  // Delete message from DB
+  await db.delete(messages).where(eq(messages.id, messageId));
+
+  // Notify receiver that message was deleted
+  connectionManager.sendToUser(message.receiverId, {
+    type: "chat:message_deleted",
+    payload: {
+      messageId: messageId,
+      conversationId: userId, // The sender is the partner for the receiver
+    },
+  });
+
+  // Also notify sender (other sessions)
+  connectionManager.sendToUser(userId, {
+    type: "chat:message_deleted",
+    payload: {
+      messageId: messageId,
+      conversationId: message.receiverId,
+    },
+  });
+
+  return true;
 }

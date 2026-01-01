@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -27,7 +27,7 @@ import {
   LocationSelect,
   ImageUpload,
   AmenitySelect,
-} from "@/components/forms/property";
+} from "@/components/forms";
 
 // Validation schema
 const propertySchema = z.object({
@@ -77,16 +77,14 @@ interface UploadedFile {
   type: string;
 }
 
-export default function EditPropertyPage() {
+function EditPropertyContent() {
   const params = useParams();
   const router = useRouter();
   const propertyId = params.id as string;
 
   const { data: session, isPending: isSessionPending } = useSession();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [images, setImages] = useState<File[]>([]);
-  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-  const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [images, setImages] = useState<(File | string)[]>([]);
 
   // Fetch property data
   const {
@@ -134,9 +132,14 @@ export default function EditPropertyPage() {
       });
 
       // Set existing images
-      if (property.thumbnailUrl) {
-        setExistingImages([property.thumbnailUrl]);
-        setImagePreviews([property.thumbnailUrl]);
+      if (property.images && property.images.length > 0) {
+        // Sort by order and use URLs
+        const sortedImages = [...property.images]
+          .sort((a, b) => a.order - b.order)
+          .map((img) => img.url);
+        setImages(sortedImages);
+      } else if (property.thumbnailUrl) {
+        setImages([property.thumbnailUrl]);
       }
     }
   }, [property, methods]);
@@ -144,12 +147,23 @@ export default function EditPropertyPage() {
   const onSubmit = async (data: PropertyFormData) => {
     setIsSubmitting(true);
     try {
-      let imageUrls: { url: string; isPrimary: boolean; order: number }[] = [];
+      let finalImageUrls: { url: string; isPrimary: boolean; order: number }[] =
+        [];
 
-      // Upload new images if any
-      if (images.length > 0) {
+      // 1. Separate new files and existing URLs
+      const filesToUpload = images.filter(
+        (img): img is File => img instanceof File
+      );
+      const existingUrls = images.filter(
+        (img): img is string => typeof img === "string"
+      );
+
+      // 2. Upload new files if any
+      let uploadedFiles: UploadedFile[] = [];
+      if (filesToUpload.length > 0) {
         const formData = new FormData();
-        images.forEach((file) => formData.append("files", file));
+        filesToUpload.forEach((file) => formData.append("files", file));
+        formData.append("type", "property");
 
         const uploadResponse = await api.post<{
           success: boolean;
@@ -158,24 +172,31 @@ export default function EditPropertyPage() {
           headers: { "Content-Type": undefined },
         });
 
-        imageUrls = uploadResponse.data.data.map((file, index) => ({
-          url: file.url,
-          isPrimary: index === 0,
-          order: index,
-        }));
-      } else if (existingImages.length > 0) {
-        // Use existing images
-        imageUrls = existingImages.map((url, index) => ({
+        uploadedFiles = uploadResponse.data;
+      }
+
+      // 3. Reconstruct the image list in the user's order
+      let uploadIndex = 0;
+      finalImageUrls = images.map((img, index) => {
+        let url: string;
+        if (img instanceof File) {
+          url = uploadedFiles[uploadIndex].url;
+          uploadIndex++;
+        } else {
+          url = img;
+        }
+
+        return {
           url,
           isPrimary: index === 0,
           order: index,
-        }));
-      }
+        };
+      });
 
       // Update property
       await api.put(`/properties/${propertyId}`, {
         ...data,
-        images: imageUrls.length > 0 ? imageUrls : undefined,
+        images: finalImageUrls.length > 0 ? finalImageUrls : undefined,
       });
 
       toast.success("แก้ไขประกาศสำเร็จ! รอ admin ตรวจสอบอีกครั้ง");
@@ -204,7 +225,6 @@ export default function EditPropertyPage() {
   if (error || !property) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
         <main className="container mx-auto px-4 py-8">
           <div className="max-w-3xl mx-auto">
             <AlertDialog>
@@ -220,15 +240,12 @@ export default function EditPropertyPage() {
             </Link>
           </div>
         </main>
-        <Footer />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <Navbar />
-
       <main className="container mx-auto px-4 py-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -324,12 +341,7 @@ export default function EditPropertyPage() {
                     อัปโหลดรูปใหม่เพื่อแทนที่รูปเดิม
                     หรือปล่อยว่างเพื่อใช้รูปเดิม
                   </p>
-                  <ImageUpload
-                    images={images}
-                    setImages={setImages}
-                    imagePreviews={imagePreviews}
-                    setImagePreviews={setImagePreviews}
-                  />
+                  <ImageUpload value={images} onChange={setImages} />
                 </div>
               </div>
 
@@ -371,5 +383,19 @@ export default function EditPropertyPage() {
         </motion.div>
       </main>
     </div>
+  );
+}
+
+export default function EditPropertyPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      }
+    >
+      <EditPropertyContent />
+    </Suspense>
   );
 }

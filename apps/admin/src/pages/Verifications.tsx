@@ -211,7 +211,7 @@ export function VerificationsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              <AnimatePresence>
+              <div>
                 {filteredData?.map((req, idx) => (
                   <motion.tr
                     key={req.id}
@@ -293,7 +293,7 @@ export function VerificationsPage() {
                     </td>
                   </motion.tr>
                 ))}
-              </AnimatePresence>
+              </div>
 
               {(!filteredData || filteredData.length === 0) && (
                 <tr>

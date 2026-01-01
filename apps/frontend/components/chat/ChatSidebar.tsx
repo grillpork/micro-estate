@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
 import { Search, X, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -143,7 +142,7 @@ export function ChatSidebar({
             </div>
             {isSearching ? (
               <div className="flex items-center justify-center py-4">
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                <div className="h-5 w-5 rounded-full border-2 border-primary border-t-transparent" />
               </div>
             ) : searchResults.length === 0 ? (
               <div className="px-4 py-4 text-center text-sm text-muted-foreground">
@@ -151,14 +150,12 @@ export function ChatSidebar({
               </div>
             ) : (
               searchResults.map((user) => (
-                <motion.button
+                <button
                   key={user.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
                   onClick={() => handleSelectSearchResult(user)}
-                  className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-accent"
+                  className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-accent"
                 >
-                  <Avatar size="md">
+                  <Avatar className="h-10 w-10">
                     {user.image ? (
                       <AvatarImage src={user.image} alt={user.name || ""} />
                     ) : null}
@@ -173,7 +170,7 @@ export function ChatSidebar({
                     </p>
                   </div>
                   <UserPlus className="h-4 w-4 text-muted-foreground" />
-                </motion.button>
+                </button>
               ))
             )}
           </div>
@@ -186,10 +183,10 @@ export function ChatSidebar({
               <div className="space-y-3 p-4">
                 {[...Array(5)].map((_, i) => (
                   <div key={i} className="flex items-center gap-3">
-                    <div className="h-12 w-12 animate-pulse rounded-full bg-muted" />
+                    <div className="h-12 w-12 rounded-full bg-muted" />
                     <div className="flex-1 space-y-2">
-                      <div className="h-4 w-24 animate-pulse rounded bg-muted" />
-                      <div className="h-3 w-32 animate-pulse rounded bg-muted" />
+                      <div className="h-4 w-24 rounded bg-muted" />
+                      <div className="h-3 w-32 rounded bg-muted" />
                     </div>
                   </div>
                 ))}
@@ -202,22 +199,19 @@ export function ChatSidebar({
                 </p>
               </div>
             ) : (
-              conversations.map((conversation, index) => (
-                <motion.button
+              conversations.map((conversation) => (
+                <button
                   key={conversation.partnerId}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
                   onClick={() => onSelectConversation(conversation.partnerId)}
                   className={cn(
-                    "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-accent",
+                    "flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-accent",
                     activeConversationId === conversation.partnerId &&
                       "bg-accent"
                   )}
                 >
                   {/* Avatar */}
                   <div className="relative shrink-0">
-                    <Avatar size="md">
+                    <Avatar className="h-10 w-10">
                       {conversation.partnerImage ? (
                         <AvatarImage
                           src={conversation.partnerImage}
@@ -271,7 +265,7 @@ export function ChatSidebar({
                       )}
                     </div>
                   </div>
-                </motion.button>
+                </button>
               ))
             )}
           </>

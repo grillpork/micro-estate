@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+<<<<<<< HEAD
 import { unstable_cache } from "next/cache";
 import { propertiesService, type SearchPropertiesParams } from "@/services";
 import { Navbar, Footer } from "@/components/layout";
@@ -82,3 +83,78 @@ export default async function PropertiesPage({
   );
 }
 
+=======
+import {
+  HydrationBoundary,
+  dehydrate,
+  QueryClient,
+} from "@tanstack/react-query";
+import { getCachedProperties } from "@/actions/property-cache";
+import { queryKeys } from "@/lib/query-keys";
+import { PropertyListing } from "@/components/property/PropertyListing";
+import type { SearchPropertiesParams } from "@/services";
+
+const PropertyLoadingSkeleton = () => (
+  <div className="container mx-auto px-4 py-12">
+    <div className="h-8 w-48 bg-muted rounded-full mb-8 animate-pulse" />
+    <div className="h-12 w-full max-w-2xl bg-muted rounded-full mb-12 animate-pulse" />
+    <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+      {[...Array(6)].map((_, i) => (
+        <div
+          key={i}
+          className="aspect-3/4 rounded-[40px] bg-muted animate-pulse"
+        />
+      ))}
+    </div>
+  </div>
+);
+
+async function PropertyContent({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const params = await searchParams;
+
+  const filters: SearchPropertiesParams = {
+    q: (params.q as string) || undefined,
+    propertyType:
+      (params.type as string) || (params.propertyType as string) || undefined,
+    listingType: (params.listingType as string) || undefined,
+    minPrice: params.minPrice ? Number(params.minPrice) : undefined,
+    maxPrice: params.maxPrice ? Number(params.maxPrice) : undefined,
+    bedrooms: params.bedrooms ? Number(params.bedrooms) : undefined,
+    province: (params.province as string) || undefined,
+    page: params.page ? Number(params.page) : 1,
+    limit: 12,
+  };
+
+  const queryClient = new QueryClient();
+
+  // 1. Prefetch data using the CACHED Server Function
+  await queryClient.prefetchQuery({
+    queryKey: queryKeys.properties.list(filters),
+    queryFn: () => getCachedProperties(filters),
+  });
+
+  return (
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <PropertyListing />
+    </HydrationBoundary>
+  );
+}
+
+export default function PropertiesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  return (
+    <div className="min-h-screen bg-[#fafafa] dark:bg-black">
+      <Suspense fallback={<PropertyLoadingSkeleton />}>
+        <PropertyContent searchParams={searchParams} />
+      </Suspense>
+    </div>
+  );
+}
+>>>>>>> 3f33e72 (feat: Add new UI components, chat features, and services, while updating admin layout, backend user service, and frontend pages.)

@@ -7,8 +7,8 @@ import { cn } from "@/lib/utils";
 
 const PAST_YEARS_LIMIT = 120;
 const FUTURE_YEARS_LIMIT = 10;
-const DEFAULT_CURRENCY = "THB";
-const DEFAULT_LOCALE = "th-TH";
+const DEFAULT_CURRENCY = "USD";
+const DEFAULT_LOCALE = "en-US";
 
 const NUMERIC_MASK_PATTERNS =
   /^(phone|zipCode|zipCodeExtended|ssn|ein|time|date|creditCard|creditCardExpiry)$/;

@@ -47,10 +47,10 @@ propertiesRoutes.get("/slug/:slug", async (c) => {
   return success(c, property);
 });
 
-// Get property by ID
+// Get property by ID or Slug
 propertiesRoutes.get("/:id", zValidator("param", idParamSchema), async (c) => {
   const { id } = c.req.valid("param");
-  const property = await service.getPropertyById(id);
+  const property = await service.getPropertyByIdOrSlug(id);
   return success(c, property);
 });
 

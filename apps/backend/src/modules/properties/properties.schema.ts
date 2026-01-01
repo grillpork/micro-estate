@@ -23,6 +23,7 @@ export const createPropertySchema = z.object({
     .max(new Date().getFullYear())
     .optional(),
   address: z.string().optional(),
+  subDistrict: z.string().optional(),
   district: z.string().optional(),
   province: z.string().optional(),
   postalCode: z.string().optional(),

@@ -2,73 +2,36 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  Home,
-  Search,
-  Building2,
-  MessageSquare,
-  User,
-  Menu,
-  X,
-  LogIn,
-  UserPlus,
-  LogOut,
-  LayoutDashboard,
-  Moon,
-  Sun,
-  Heart,
-  Calendar,
-} from "lucide-react";
+import { useState, useEffect } from "react";
+import { Building2, Menu, X, LogIn, UserPlus, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+<<<<<<< HEAD
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { signOut } from "@/services";
 import { useUser, useIsAuthLoading } from "@/stores";
+=======
+import { useSession } from "@/services";
+>>>>>>> 3f33e72 (feat: Add new UI components, chat features, and services, while updating admin layout, backend user service, and frontend pages.)
 import { NotificationDropdown } from "@/components/notification/NotificationDropdown";
-
-interface NavItem {
-  label: string;
-  href: string;
-  icon: React.ReactNode;
-  requireAuth?: boolean;
-  roles?: string[];
-}
-
-const navItems: NavItem[] = [
-  { label: "หน้าแรก", href: "/", icon: <Home className="h-4 w-4" /> },
-  {
-    label: "ค้นหาอสังหา",
-    href: "/properties",
-    icon: <Search className="h-4 w-4" />,
-  },
-  {
-    label: "ประกาศขาย/เช่า",
-    href: "/post-property",
-    icon: <Building2 className="h-4 w-4" />,
-    requireAuth: true,
-    roles: ["agent", "admin"],
-  },
-  {
-    label: "ข้อความ",
-    href: "/messages",
-    icon: <MessageSquare className="h-4 w-4" />,
-    requireAuth: true,
-  },
-  {
-    label: "รายการโปรด",
-    href: "/favorites",
-    icon: <Heart className="h-4 w-4" />,
-    requireAuth: true,
-  },
-];
+import { navItems } from "@/config/navigation";
+import { UserNav } from "./Navbar/UserNav";
+import { MobileMenu } from "./Navbar/MobileMenu";
 
 export function Navbar() {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+<<<<<<< HEAD
+=======
+  const { data: session, isPending } = useSession();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+>>>>>>> 3f33e72 (feat: Add new UI components, chat features, and services, while updating admin layout, backend user service, and frontend pages.)
 
   // Use auth store instead of useSession
   const user = useUser();
@@ -81,28 +44,14 @@ export function Navbar() {
 
   const filteredNavItems = navItems.filter((item) => {
     if (!item.requireAuth) return true;
+    if (!mounted) return false;
     if (!user) return false;
     if (item.roles && !item.roles.includes(user.role as string)) return false;
     return true;
   });
 
-  const handleSignOut = async () => {
-    await signOut();
-    window.location.href = "/";
-  };
-
-  const getInitials = (name: string | null | undefined) => {
-    if (!name) return "U";
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md supports-backdrop-filter:bg-background/60">
       <nav className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
@@ -147,76 +96,14 @@ export function Navbar() {
             <span className="sr-only">Toggle theme</span>
           </Button>
 
-          {isPending ? (
+          {!mounted || isPending ? (
             <div className="h-9 w-9 animate-pulse rounded-full bg-muted" />
           ) : user ? (
             <>
               {/* Notifications */}
               <NotificationDropdown />
-
               {/* User Menu */}
-              <div className="relative group">
-                <button className="flex items-center gap-2 rounded-full p-1 transition-colors hover:bg-accent">
-                  <Avatar size="sm">
-                    {user.image ? (
-                      <AvatarImage src={user.image} alt={user.name || ""} />
-                    ) : null}
-                    <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
-                  </Avatar>
-                </button>
-
-                {/* Dropdown */}
-                <div className="invisible absolute right-0 top-full mt-2 w-56 origin-top-right scale-95 rounded-xl border bg-card p-2 opacity-0 shadow-lg transition-all group-hover:visible group-hover:scale-100 group-hover:opacity-100">
-                  <div className="px-3 py-2 border-b mb-2">
-                    <p className="font-medium">{user.name || "ผู้ใช้"}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {user.email}
-                    </p>
-                  </div>
-
-                  {user.role === "agent" || user.role === "admin" ? (
-                    <Link
-                      href="/dashboard"
-                      className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent"
-                    >
-                      <LayoutDashboard className="h-4 w-4" />
-                      Dashboard
-                    </Link>
-                  ) : (
-                    <Link
-                      href="/become-agent"
-                      className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent"
-                    >
-                      <Building2 className="h-4 w-4" />
-                      เป็นตัวแทน
-                    </Link>
-                  )}
-
-                  <Link
-                    href="/bookings"
-                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent"
-                  >
-                    <Calendar className="h-4 w-4" />
-                    รายการจอง
-                  </Link>
-
-                  <Link
-                    href="/profile"
-                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent"
-                  >
-                    <User className="h-4 w-4" />
-                    โปรไฟล์
-                  </Link>
-
-                  <button
-                    onClick={handleSignOut}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-destructive transition-colors hover:bg-destructive/10"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    ออกจากระบบ
-                  </button>
-                </div>
-              </div>
+              <UserNav user={user} />
             </>
           ) : (
             <>
@@ -252,48 +139,14 @@ export function Navbar() {
       </nav>
 
       {/* Mobile Menu */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="border-t bg-background md:hidden"
-          >
-            <div className="container mx-auto flex flex-col gap-1 px-4 py-4">
-              {filteredNavItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors",
-                    isActive(item.href)
-                      ? "bg-accent text-accent-foreground"
-                      : "text-muted-foreground hover:bg-accent"
-                  )}
-                >
-                  {item.icon}
-                  {item.label}
-                </Link>
-              ))}
-
-              {/* Theme Toggle Mobile */}
-              <button
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent"
-              >
-                {theme === "dark" ? (
-                  <Sun className="h-4 w-4" />
-                ) : (
-                  <Moon className="h-4 w-4" />
-                )}
-                {theme === "dark" ? "โหมดสว่าง" : "โหมดมืด"}
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <MobileMenu
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+        items={filteredNavItems}
+        theme={theme}
+        onToggleTheme={() => setTheme(theme === "dark" ? "light" : "dark")}
+        isActive={isActive}
+      />
     </header>
   );
 }

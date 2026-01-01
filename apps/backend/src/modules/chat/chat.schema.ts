@@ -33,3 +33,10 @@ export type SendMessageInput = z.infer<typeof sendMessageSchema>;
 export type MarkReadInput = z.infer<typeof markReadSchema>;
 export type GetMessagesInput = z.infer<typeof getMessagesSchema>;
 export type TypingInput = z.infer<typeof typingSchema>;
+
+// ===== Delete Message Schema =====
+export const deleteMessageSchema = z.object({
+  messageId: z.string().min(1),
+});
+
+export type DeleteMessageInput = z.infer<typeof deleteMessageSchema>;

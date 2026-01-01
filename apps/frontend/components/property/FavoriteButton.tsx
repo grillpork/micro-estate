@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Heart } from "lucide-react";
 import { Button } from "@/components/ui";
-import { favoritesService } from "@/stores/features/favorites/favorites.service";
+import { favoritesService } from "@/services";
 import { cn } from "@/lib/utils";
 
 interface FavoriteButtonProps {

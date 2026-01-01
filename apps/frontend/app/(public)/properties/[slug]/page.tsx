@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 "use client";
 
 import { useState, useEffect } from "react";
@@ -146,6 +147,65 @@ export default function PropertyDetailPage() {
   }
 
   // Parse images - handle both string array and object array
+=======
+import { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import {
+  ArrowLeft,
+  Bed,
+  Bath,
+  Ruler,
+  Layers,
+  Home,
+  Calendar,
+  Car,
+  Check,
+} from "lucide-react";
+
+import { getCachedPropertyBySlug } from "@/actions/property-cache";
+import { Button, Card, CardContent, Badge } from "@/components/ui";
+import { formatPrice } from "@/lib/utils";
+import { PROPERTY_TYPE_LABELS, LISTING_TYPE_LABELS } from "@/lib/constants";
+import { PropertyGallery } from "@/components/property/PropertyGallery";
+import { PropertyBookingCard } from "@/components/property/PropertyBookingCard";
+import { PropertyHeader } from "@/components/property/PropertyHeader";
+
+interface PageProps {
+  params: Promise<{ slug: string }>;
+}
+
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const property = await getCachedPropertyBySlug(slug);
+  if (!property) return { title: "Property Not Found" };
+
+  return {
+    title: `${property.title} | Micro Estate`,
+    description: property.description?.slice(0, 160) || "View property details",
+    openGraph: {
+      images: property.thumbnailUrl ? [property.thumbnailUrl] : [],
+    },
+  };
+}
+
+export default async function PropertyDetailPage({ params }: PageProps) {
+  const { slug } = await params;
+  console.log(`[PropertyDetailPage] Rendering for slug: ${slug}`);
+  const property = await getCachedPropertyBySlug(slug);
+
+  if (!property) {
+    console.log(`[PropertyDetailPage] Property not found for slug: ${slug}`);
+    notFound();
+  }
+  console.log(
+    `[PropertyDetailPage] Found property: ${property.id} (${property.title})`
+  );
+
+  // Parse images
+>>>>>>> 3f33e72 (feat: Add new UI components, chat features, and services, while updating admin layout, backend user service, and frontend pages.)
   const images: { url: string; isPrimary?: boolean }[] = [];
   if (property.thumbnailUrl) {
     images.push({ url: property.thumbnailUrl, isPrimary: true });
@@ -159,6 +219,7 @@ export default function PropertyDetailPage() {
     });
   }
 
+<<<<<<< HEAD
   // If no images, add placeholder
   if (images.length === 0) {
     images.push({
@@ -188,6 +249,8 @@ export default function PropertyDetailPage() {
     }
   };
 
+=======
+>>>>>>> 3f33e72 (feat: Add new UI components, chat features, and services, while updating admin layout, backend user service, and frontend pages.)
   // Parse amenities
   let amenitiesDisplay: { name: string; id: string }[] = [];
   if (property.amenities && Array.isArray(property.amenities)) {
@@ -196,14 +259,20 @@ export default function PropertyDetailPage() {
       name: item.amenity?.nameTh || item.amenity?.name || "ไม่ระบุชื่อ",
     }));
   } else if ((property as any).amenities) {
+<<<<<<< HEAD
     // Fallback for legacy JSON format
+=======
+>>>>>>> 3f33e72 (feat: Add new UI components, chat features, and services, while updating admin layout, backend user service, and frontend pages.)
     try {
       const rawAmenities = (property as any).amenities;
       const parsed =
         typeof rawAmenities === "string"
           ? JSON.parse(rawAmenities)
           : rawAmenities;
+<<<<<<< HEAD
 
+=======
+>>>>>>> 3f33e72 (feat: Add new UI components, chat features, and services, while updating admin layout, backend user service, and frontend pages.)
       if (Array.isArray(parsed)) {
         amenitiesDisplay = parsed.map((a: any) => ({
           id: typeof a === "string" ? a : a.id,
@@ -215,6 +284,7 @@ export default function PropertyDetailPage() {
     }
   }
 
+<<<<<<< HEAD
   // Parse features
   let features: string[] = [];
   if ((property as any).features) {
@@ -235,15 +305,31 @@ export default function PropertyDetailPage() {
         {/* Back Button */}
         <button
           onClick={() => router.back()}
+=======
+  const location =
+    [property.district, property.province].filter(Boolean).join(", ") ||
+    "ไม่ระบุตำแหน่ง";
+
+  return (
+    <div className="min-h-screen bg-background">
+      <main className="container mx-auto px-4 py-6">
+        <Link
+          href="/properties"
+>>>>>>> 3f33e72 (feat: Add new UI components, chat features, and services, while updating admin layout, backend user service, and frontend pages.)
           className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           กลับ
+<<<<<<< HEAD
         </button>
+=======
+        </Link>
+>>>>>>> 3f33e72 (feat: Add new UI components, chat features, and services, while updating admin layout, backend user service, and frontend pages.)
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Images & Details */}
           <div className="lg:col-span-2 space-y-6">
+<<<<<<< HEAD
             {/* Image Gallery */}
             <Card className="overflow-hidden">
               <div className="relative aspect-video bg-muted">
@@ -366,6 +452,31 @@ export default function PropertyDetailPage() {
                 </div>
 
                 {/* Price */}
+=======
+            <PropertyGallery
+              images={images}
+              title={property.title}
+              listingType={property.listingType}
+              listingTypeLabel={
+                LISTING_TYPE_LABELS[property.listingType] ||
+                property.listingType
+              }
+            />
+
+            <Card>
+              <CardContent className="p-6">
+                <PropertyHeader
+                  id={property.id}
+                  title={property.title}
+                  propertyType={property.propertyType}
+                  propertyTypeLabel={
+                    PROPERTY_TYPE_LABELS[property.propertyType] ||
+                    property.propertyType
+                  }
+                  location={location}
+                />
+
+>>>>>>> 3f33e72 (feat: Add new UI components, chat features, and services, while updating admin layout, backend user service, and frontend pages.)
                 <div className="mb-6">
                   <p className="text-3xl font-bold text-primary">
                     {formatPrice(Number(property.price))}
@@ -377,7 +488,10 @@ export default function PropertyDetailPage() {
                   </p>
                 </div>
 
+<<<<<<< HEAD
                 {/* Key Features */}
+=======
+>>>>>>> 3f33e72 (feat: Add new UI components, chat features, and services, while updating admin layout, backend user service, and frontend pages.)
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6 p-4 bg-muted/50 rounded-lg">
                   {property.bedrooms !== null &&
                     property.bedrooms !== undefined && (
@@ -427,7 +541,10 @@ export default function PropertyDetailPage() {
                   )}
                 </div>
 
+<<<<<<< HEAD
                 {/* Description */}
+=======
+>>>>>>> 3f33e72 (feat: Add new UI components, chat features, and services, while updating admin layout, backend user service, and frontend pages.)
                 {property.description && (
                   <div className="mb-6">
                     <h2 className="text-lg font-semibold mb-2">รายละเอียด</h2>
@@ -437,7 +554,10 @@ export default function PropertyDetailPage() {
                   </div>
                 )}
 
+<<<<<<< HEAD
                 {/* Additional Details */}
+=======
+>>>>>>> 3f33e72 (feat: Add new UI components, chat features, and services, while updating admin layout, backend user service, and frontend pages.)
                 <div className="mb-6">
                   <h2 className="text-lg font-semibold mb-4">
                     ข้อมูลเพิ่มเติม
@@ -484,7 +604,10 @@ export default function PropertyDetailPage() {
                   </div>
                 </div>
 
+<<<<<<< HEAD
                 {/* Amenities */}
+=======
+>>>>>>> 3f33e72 (feat: Add new UI components, chat features, and services, while updating admin layout, backend user service, and frontend pages.)
                 {amenitiesDisplay.length > 0 && (
                   <div>
                     <h2 className="text-lg font-semibold mb-4">
@@ -508,6 +631,7 @@ export default function PropertyDetailPage() {
             </Card>
           </div>
 
+<<<<<<< HEAD
           {/* Right Column - Contact Card */}
           <div className="lg:col-span-1">
             <div className="sticky top-24 space-y-6">
@@ -730,6 +854,50 @@ function PropertySkeleton() {
           </CardContent>
         </Card>
       </div>
+=======
+          {/* Right Column - Booking Card */}
+          <div className="lg:col-span-1">
+            <PropertyBookingCard
+              propertyId={property.id}
+              title={property.title}
+              price={Number(property.price)}
+            />
+
+            {/* Quick Stats */}
+            <Card className="mt-6">
+              <CardContent className="p-6">
+                <h3 className="text-lg font-semibold mb-4">สถิติประกาศ</h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">เข้าชม</span>
+                    <span className="font-medium">
+                      {property.views || 0} ครั้ง
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">ลงประกาศเมื่อ</span>
+                    <span className="font-medium">
+                      {new Date(property.createdAt).toLocaleDateString(
+                        "th-TH",
+                        {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        }
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">รหัสประกาศ</span>
+                    <span className="font-medium text-xs">{property.id}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </main>
+>>>>>>> 3f33e72 (feat: Add new UI components, chat features, and services, while updating admin layout, backend user service, and frontend pages.)
     </div>
   );
 }

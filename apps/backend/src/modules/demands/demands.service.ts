@@ -63,6 +63,7 @@ async function getUserActiveDemandCount(userId: string): Promise<number> {
 }
 
 // ===== Create Demand =====
+
 export async function createDemand(data: CreateDemandInput, userId: string) {
   // Check active demand limit
   const activeCount = await getUserActiveDemandCount(userId);
@@ -73,48 +74,8 @@ export async function createDemand(data: CreateDemandInput, userId: string) {
   }
 
   const id = nanoid();
-  let aiSummary: string | null = null;
-  let aiTags: string[] | null = data.tags || null;
-  let readinessScore: number | null = null;
-  let searchableText: string | null = null;
 
-  // Try to process with AI (non-blocking, with fallback)
-  const ragAvailable = await isRagServiceAvailable();
-  if (ragAvailable) {
-    try {
-      const processed = await processDemandWithAI({
-        intent: data.intent,
-        propertyType: data.propertyType,
-        budgetMin: data.budgetMin,
-        budgetMax: data.budgetMax,
-        province: data.province,
-        district: data.district,
-        nearBts: data.nearBts,
-        nearMrt: data.nearMrt,
-        bedroomsMin: data.bedroomsMin,
-        bedroomsMax: data.bedroomsMax,
-        bathroomsMin: data.bathroomsMin,
-        areaMin: data.areaMin,
-        areaMax: data.areaMax,
-        description: data.description,
-      });
-
-      if (processed) {
-        aiSummary = processed.summary;
-        // Merge user tags with AI tags (user tags take priority)
-        aiTags = [...new Set([...(data.tags || []), ...processed.tags])].slice(
-          0,
-          DEMAND_LIMITS.MAX_TAGS
-        );
-        readinessScore = processed.readinessScore;
-        searchableText = processed.searchableText;
-      }
-    } catch (error) {
-      console.error("AI processing failed, continuing without AI:", error);
-    }
-  }
-
-  // Insert demand
+  // Insert demand immediately (fast path)
   const [demand] = await db
     .insert(demandPosts)
     .values({
@@ -134,9 +95,9 @@ export async function createDemand(data: CreateDemandInput, userId: string) {
       areaMin: data.areaMin?.toString(),
       areaMax: data.areaMax?.toString(),
       description: data.description,
-      summary: aiSummary,
-      tags: aiTags ? JSON.stringify(aiTags) : null,
-      readinessScore,
+      summary: null, // Will be populated by AI later
+      tags: data.tags ? JSON.stringify(data.tags) : null,
+      readinessScore: null, // Will be populated by AI later
       urgency: data.urgency as any,
       isPublic: data.isPublic,
       maxAgents: data.maxAgents,
@@ -145,21 +106,72 @@ export async function createDemand(data: CreateDemandInput, userId: string) {
     })
     .returning();
 
-  // Generate and store embedding (async, non-blocking)
-  if (searchableText && ragAvailable) {
-    generateAndStoreEmbedding(
-      id,
-      searchableText,
-      generateContentHash(data)
-    ).catch((error) => {
-      console.error("Failed to generate embedding:", error);
-    });
-  }
+  // Trigger AI processing in background (fire and forget)
+  processDemandInBackground(id, data).catch((err) => {
+    console.error(`[Background] Failed to process demand ${id}:`, err);
+  });
 
   return {
     ...demand,
-    tags: aiTags || [],
+    tags: data.tags || [],
   };
+}
+
+// ===== Background: Process Demand with AI =====
+async function processDemandInBackground(
+  demandId: string,
+  data: CreateDemandInput
+) {
+  const ragAvailable = await isRagServiceAvailable();
+  if (!ragAvailable) return;
+
+  try {
+    // 1. Process with AI to get summary, tags, score
+    const processed = await processDemandWithAI({
+      intent: data.intent,
+      propertyType: data.propertyType,
+      budgetMin: data.budgetMin,
+      budgetMax: data.budgetMax,
+      province: data.province,
+      district: data.district,
+      nearBts: data.nearBts,
+      nearMrt: data.nearMrt,
+      bedroomsMin: data.bedroomsMin,
+      bedroomsMax: data.bedroomsMax,
+      bathroomsMin: data.bathroomsMin,
+      areaMin: data.areaMin,
+      areaMax: data.areaMax,
+      description: data.description,
+    });
+
+    if (!processed) return;
+
+    // 2. Update Demand with AI results
+    const aiTags = [
+      ...new Set([...(data.tags || []), ...processed.tags]),
+    ].slice(0, DEMAND_LIMITS.MAX_TAGS);
+
+    await db
+      .update(demandPosts)
+      .set({
+        summary: processed.summary,
+        tags: JSON.stringify(aiTags),
+        readinessScore: processed.readinessScore,
+        updatedAt: new Date(),
+      })
+      .where(eq(demandPosts.id, demandId));
+
+    // 3. Generate and Store Embedding
+    if (processed.searchableText) {
+      await generateAndStoreEmbedding(
+        demandId,
+        processed.searchableText,
+        generateContentHash(data)
+      );
+    }
+  } catch (error) {
+    console.error(`Error processing demand ${demandId} in background:`, error);
+  }
 }
 
 // ===== Helper: Generate and store embedding =====

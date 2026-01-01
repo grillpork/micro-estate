@@ -154,8 +154,6 @@ export default function AgentDashboardPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
-
       <main className="container mx-auto px-4 py-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -403,8 +401,6 @@ export default function AgentDashboardPage() {
           </Card>
         </motion.div>
       </main>
-
-      <Footer />
     </div>
   );
 }

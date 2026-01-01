@@ -197,9 +197,9 @@ export function PropertiesPage() {
 
   const filteredData = properties.filter(
     (p) =>
-      p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.district.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.province.toLowerCase().includes(searchTerm.toLowerCase())
+      (p.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.district || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.province || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -484,7 +484,7 @@ export function PropertiesPage() {
       </AnimatePresence>
 
       {/* Reject Modal */}
-      <AnimatePresence>
+      <div>
         {rejectModal && (
           <div className="fixed inset-0 z-100 flex items-center justify-center p-6 selection:bg-red-100">
             <motion.div
@@ -549,7 +549,7 @@ export function PropertiesPage() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
+      </div>
     </div>
   );
 }

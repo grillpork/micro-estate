@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { signIn } from "@/services/auth.service";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Building2,
   Mail,
@@ -137,7 +137,7 @@ export function LoginPage() {
               </p>
             </div>
 
-            <AnimatePresence>
+            <div>
               {error && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
@@ -149,7 +149,7 @@ export function LoginPage() {
                   {error}
                 </motion.div>
               )}
-            </AnimatePresence>
+            </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">

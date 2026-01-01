@@ -125,3 +125,21 @@ chatRoutes.post("/ai", async (c) => {
     });
   }
 });
+
+// Delete message
+chatRoutes.delete("/messages/:id", async (c) => {
+  const user = c.get("user");
+  const messageId = c.req.param("id");
+
+  const deleted = await service.deleteMessage(user.id, messageId);
+
+  if (!deleted) {
+    return success(
+      c,
+      { deleted: false, message: "Message not found or unauthorized" },
+      404
+    );
+  }
+
+  return success(c, { deleted: true });
+});

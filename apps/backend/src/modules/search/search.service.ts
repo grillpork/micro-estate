@@ -1,7 +1,11 @@
 import { ilike, and, eq, gte, lte, or, sql, desc } from "drizzle-orm";
 import { db } from "../../db";
 import { properties, users } from "../../db/schema";
-import { getOrSet, cacheKeys } from "../../shared/services/redis";
+import {
+  getOrSet,
+  cacheKeys,
+  generateStableCacheKey,
+} from "../../shared/services/redis";
 import { CACHE_TTL } from "../../shared/constants";
 import type { SearchQuery } from "./search.schema";
 
@@ -9,7 +13,7 @@ import type { SearchQuery } from "./search.schema";
  * Search properties with caching (Hybrid pagination support)
  */
 export async function searchProperties(query: SearchQuery) {
-  const cacheKey = cacheKeys.search(JSON.stringify(query));
+  const cacheKey = cacheKeys.search(generateStableCacheKey(query));
 
   return getOrSet(
     cacheKey,

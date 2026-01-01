@@ -15,7 +15,7 @@ import {
   Check,
   ChevronDown,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -266,7 +266,7 @@ export function AmenitiesPage() {
         </div>
       </div>
 
-      <AnimatePresence>
+      <div>
         {showAddForm && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
@@ -364,10 +364,10 @@ export function AmenitiesPage() {
             </div>
           </motion.div>
         )}
-      </AnimatePresence>
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        <AnimatePresence>
+        <div>
           {filteredData?.map((amenity, idx) => (
             <motion.div
               key={amenity.id}
@@ -428,7 +428,7 @@ export function AmenitiesPage() {
               </div>
             </motion.div>
           ))}
-        </AnimatePresence>
+        </div>
       </div>
 
       {filteredData?.length === 0 && (

@@ -35,22 +35,28 @@ export async function invalidate(key: string): Promise<void> {
 }
 
 /**
- * Invalidate cache by pattern
- */
-export async function invalidatePattern(pattern: string): Promise<void> {
-  const keys = await redis.keys(pattern);
-  if (keys.length > 0) {
-    await redis.del(...keys);
-  }
-}
-
-/**
  * Cache key builders
  */
 export const cacheKeys = {
   user: (id: string) => `user:${id}`,
   property: (id: string) => `property:${id}`,
+  propertySlug: (slug: string) => `property:slug:${slug}`,
   properties: (params: string) => `properties:${params}`,
   search: (query: string) => `search:${query}`,
   session: (id: string) => `session:${id}`,
 };
+
+/**
+ * Generate stable cache key from object (sorts keys)
+ */
+export function generateStableCacheKey(obj: Record<string, any>): string {
+  const sortedKeys = Object.keys(obj).sort();
+  const sortedObj = sortedKeys.reduce(
+    (acc, key) => {
+      acc[key] = obj[key];
+      return acc;
+    },
+    {} as Record<string, any>
+  );
+  return JSON.stringify(sortedObj);
+}

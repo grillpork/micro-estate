@@ -16,10 +16,7 @@ import {
 
 import { Navbar, Footer } from "@/components/layout";
 import { Button, Card, CardContent, Badge, Skeleton } from "@/components/ui";
-import {
-  favoritesService,
-  type Favorite,
-} from "@/stores/features/favorites/favorites.service";
+import { favoritesService, type Favorite } from "@/services";
 import { formatPrice } from "@/lib/utils";
 
 export default function FavoritesPage() {
@@ -52,8 +49,6 @@ export default function FavoritesPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
-
       <main className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -71,7 +66,7 @@ export default function FavoritesPage() {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3].map((i) => (
               <Card key={i} className="overflow-hidden">
-                <Skeleton className="aspect-[4/3] w-full" />
+                <Skeleton className="aspect-4/3 w-full" />
                 <CardContent className="p-4 space-y-2">
                   <Skeleton className="h-6 w-3/4" />
                   <Skeleton className="h-4 w-1/2" />
@@ -118,8 +113,13 @@ export default function FavoritesPage() {
                   transition={{ delay: index * 0.05 }}
                 >
                   <Card className="group overflow-hidden transition-all hover:shadow-lg">
+<<<<<<< HEAD
                     <Link href={`/properties/${property.slug || property.id}`}>
                       <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+=======
+                    <Link href={`/properties/${property.id}`}>
+                      <div className="relative aspect-4/3 overflow-hidden bg-muted">
+>>>>>>> 3f33e72 (feat: Add new UI components, chat features, and services, while updating admin layout, backend user service, and frontend pages.)
                         {property.thumbnailUrl ? (
                           <Image
                             src={property.thumbnailUrl}
@@ -213,8 +213,6 @@ export default function FavoritesPage() {
           </div>
         )}
       </main>
-
-      <Footer />
     </div>
   );
 }

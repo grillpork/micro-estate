@@ -15,6 +15,9 @@
     "@aws-sdk/client-s3": "^3.948.0",
     "@hono/zod-validator": "^0.7.5",
     "@neondatabase/serverless": "^1.0.2",
+    "@orpc/contract": "^1.13.1",
+    "@orpc/server": "^1.13.1",
+    "@upstash/ratelimit": "^2.0.7",
     "@upstash/redis": "^1.35.8",
     "better-auth": "^1.4.6",
     "dotenv": "^17.2.3",
@@ -25,7 +28,7 @@
     "nanoid": "^5.1.6",
     "omise": "^1.1.0",
     "resend": "^6.6.0",
-    "zod": "^4.1.13"
+    "zod": "^4.2.1"
   },
   "devDependencies": {
     "@types/bun": "latest",

@@ -285,3 +285,95 @@ export async function countDemandMatches(demandId: string): Promise<number> {
 
   return Number(result.count);
 }
+
+// ===== Get Recommended Properties (Relaxed Matching) =====
+export async function getRecommendedProperties(
+  demandId: string,
+  limit: number = 3
+) {
+  // Get demand details
+  const [demand] = await db
+    .select()
+    .from(demandPosts)
+    .where(eq(demandPosts.id, demandId))
+    .limit(1);
+
+  if (!demand) return [];
+
+  // Build relaxed conditions
+  // Must match: Status, Intent, Property Type
+  // Relaxed: Location (Province only), Price (up to +20%), Bedrooms (>= min - 1)
+  const conditions = [
+    eq(properties.status, PROPERTY_STATUS.ACTIVE as any),
+    eq(properties.listingType, demand.intent === "buy" ? "sale" : "rent"),
+    eq(properties.propertyType, demand.propertyType as any),
+  ];
+
+  if (demand.province) {
+    conditions.push(eq(properties.province, demand.province));
+  }
+
+  // Relaxed Budget (+20%)
+  if (demand.budgetMax) {
+    const relaxedMax = Number(demand.budgetMax) * 1.2;
+    conditions.push(lte(properties.price, relaxedMax.toString()));
+  }
+
+  // Relaxed Bedrooms (Min - 1, but at least 0)
+  if (demand.bedroomsMin) {
+    const relaxedMin = Math.max(0, demand.bedroomsMin - 1);
+    conditions.push(gte(properties.bedrooms, relaxedMin));
+  }
+
+  // Exclude properties already matched
+  const existingMatches = await db
+    .select({ propertyId: demandMatches.propertyId })
+    .from(demandMatches)
+    .where(eq(demandMatches.demandId, demandId));
+
+  const excludeIds = existingMatches.map((m) => m.propertyId);
+
+  // Fetch relaxed matches
+  const recommendations = await db
+    .select({
+      id: properties.id,
+      title: properties.title,
+      description: properties.description,
+      price: properties.price,
+      // properties table doesn't have images column, use thumbnailUrl
+      thumbnailUrl: properties.thumbnailUrl,
+      bedrooms: properties.bedrooms,
+      bathrooms: properties.bathrooms,
+      area: properties.area,
+      province: properties.province,
+      district: properties.district,
+      // subDistrict doesn't exist in properties schema
+    })
+    .from(properties)
+    .where(and(...conditions))
+    .orderBy(desc(properties.createdAt))
+    .limit(limit * 3); // Fetch more to filter
+
+  // Filter out excludes manually
+  const filtered = recommendations.filter((r) => !excludeIds.includes(r.id));
+
+  // Add dummy score and reason
+  return filtered.slice(0, limit).map((prop) => ({
+    id: nanoid(),
+    demandId,
+    propertyId: prop.id,
+    matchScore: 40, // Recommendations have lower score
+    explanation: "ทรัพย์แนะนำ: ใกล้เคียงกับความต้องการของคุณ",
+    isViewed: false,
+    isSaved: false,
+    isContacted: false,
+    status: "pending",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    property: {
+      ...prop,
+      subDistrict: "", // Schema doesn't have subDistrict yet
+      images: prop.thumbnailUrl ? [{ url: prop.thumbnailUrl }] : [],
+    },
+  }));
+}

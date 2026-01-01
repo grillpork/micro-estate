@@ -19,9 +19,15 @@ import { cn, formatRelativeTime } from "@/lib/utils";
 import {
   notificationsService,
   type Notification,
+<<<<<<< HEAD
 } from "@/stores/features/notifications/notifications.service";
 import { useNotificationStore } from "@/stores";
+=======
+} from "@/services/notifications/notifications.service";
+>>>>>>> 3f33e72 (feat: Add new UI components, chat features, and services, while updating admin layout, backend user service, and frontend pages.)
 import Link from "next/link";
+import { useWebSocket } from "@/hooks";
+import { useSession } from "@/services";
 
 interface NotificationDropdownProps {
   className?: string;
@@ -49,7 +55,54 @@ export function NotificationDropdown({ className }: NotificationDropdownProps) {
     if (newIsOpen && !hasFetched) {
       fetchNotifications();
     }
+<<<<<<< HEAD
   }, [isOpen, hasFetched, setIsOpen, fetchNotifications]);
+=======
+  }, [isLoading]);
+
+  const { data: session } = useSession();
+
+  // WebSocket connection for real-time notifications
+  const { connect } = useWebSocket({
+    onConnect: () => console.log("Notification WebSocket connected"),
+    onMessage: (msg: { type: string; payload: unknown }) => {
+      if (msg.type === "notification") {
+        const newNotification = msg.payload as Notification;
+        setNotifications((prev) => [newNotification, ...prev]);
+        setUnreadCount((prev) => prev + 1);
+      }
+    },
+  });
+
+  // Connect WebSocket on mount if user is logged in
+  useEffect(() => {
+    if (session?.user) {
+      connect();
+    }
+  }, [session, connect]);
+
+  // Fetch only once on first mount (not on every render)
+  useEffect(() => {
+    if (!hasFetched && session?.user) {
+      // Delay initial fetch to avoid race conditions with other requests
+      const timer = setTimeout(() => {
+        Promise.all([
+          notificationsService.getAll(10),
+          notificationsService.getUnreadCount(),
+        ])
+          .then(([data, count]) => {
+            setNotifications(data.notifications);
+            setUnreadCount(count);
+            setHasFetched(true);
+          })
+          .catch((err) =>
+            console.error("Failed to fetch initial notifications:", err)
+          );
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [hasFetched, session]);
+>>>>>>> 3f33e72 (feat: Add new UI components, chat features, and services, while updating admin layout, backend user service, and frontend pages.)
 
   const handleMarkAsRead = async (id: string) => {
     try {

@@ -1,16 +1,26 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { CreditCard, Lock, Loader2, CheckCircle } from "lucide-react";
+import { PatternFormat } from "react-number-format";
+import { createCardToken, getCardBrand } from "@/lib/omise";
 import { Button } from "@/components/ui/button";
-import {
-  createCardToken,
-  formatCardNumber,
-  getCardBrand,
-  validateCardNumber,
-  validateExpirationDate,
-} from "@/lib/omise";
-import type { CardFormData } from "@/types/payment";
+
+const cardSchema = z.object({
+  number: z
+    .string()
+    .min(16, "หมายเลขบัตรต้องมี 16 หลัก")
+    .transform((val) => val.replace(/\s/g, "")),
+  name: z.string().min(1, "กรุณากรอกชื่อบนบัตร"),
+  expirationMonth: z.string().min(1, "กรุณาเลือกเดือน"),
+  expirationYear: z.string().min(1, "กรุณาเลือกปี"),
+  securityCode: z.string().regex(/^\d{3,4}$/, "CVV ไม่ถูกต้อง"),
+});
+
+type CardFormValues = z.infer<typeof cardSchema>;
 
 interface CreditCardFormProps {
   onTokenCreated: (token: string) => void;
@@ -23,79 +33,35 @@ export function CreditCardForm({
   isProcessing,
   amount,
 }: CreditCardFormProps) {
-  const [formData, setFormData] = useState<CardFormData>({
-    name: "",
-    number: "",
-    expirationMonth: "",
-    expirationYear: "",
-    securityCode: "",
-  });
-  const [errors, setErrors] = useState<Partial<CardFormData>>({});
   const [isCreatingToken, setIsCreatingToken] = useState(false);
   const [cardBrand, setCardBrand] = useState("unknown");
 
-  // Handle card number change with formatting
-  const handleCardNumberChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const formatted = formatCardNumber(e.target.value);
-      if (formatted.replace(/\s/g, "").length <= 16) {
-        setFormData((prev) => ({ ...prev, number: formatted }));
-        setCardBrand(getCardBrand(formatted));
-        setErrors((prev) => ({ ...prev, number: undefined }));
-      }
+  const {
+    register,
+    handleSubmit,
+    control,
+    setError,
+    formState: { errors },
+  } = useForm<CardFormValues>({
+    resolver: zodResolver(cardSchema),
+    defaultValues: {
+      number: "",
+      name: "",
+      expirationMonth: "",
+      expirationYear: "",
+      securityCode: "",
     },
-    []
-  );
+  });
 
-  // Handle input changes
-  const handleChange = useCallback(
-    (field: keyof CardFormData) =>
-      (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        setFormData((prev) => ({ ...prev, [field]: e.target.value }));
-        setErrors((prev) => ({ ...prev, [field]: undefined }));
-      },
-    []
-  );
-
-  // Validate form
-  const validateForm = (): boolean => {
-    const newErrors: Partial<CardFormData> = {};
-
-    if (!formData.name.trim()) {
-      newErrors.name = "กรุณากรอกชื่อบนบัตร";
-    }
-
-    if (!validateCardNumber(formData.number)) {
-      newErrors.number = "หมายเลขบัตรไม่ถูกต้อง";
-    }
-
-    if (
-      !validateExpirationDate(formData.expirationMonth, formData.expirationYear)
-    ) {
-      newErrors.expirationMonth = "วันหมดอายุไม่ถูกต้อง";
-    }
-
-    if (!/^\d{3,4}$/.test(formData.securityCode)) {
-      newErrors.securityCode = "CVV ไม่ถูกต้อง";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  // Handle form submission
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!validateForm()) return;
-
+  const onSubmit = async (data: CardFormValues) => {
     setIsCreatingToken(true);
     try {
-      const token = await createCardToken(formData);
+      const token = await createCardToken(data);
       onTokenCreated(token);
     } catch (error) {
-      setErrors({
-        number:
+      setError("number", {
+        type: "manual",
+        message:
           error instanceof Error
             ? error.message
             : "ไม่สามารถสร้าง token ได้ กรุณาลองใหม่",
@@ -107,7 +73,6 @@ export function CreditCardForm({
 
   const isLoading = isCreatingToken || isProcessing;
 
-  // Card brand icons
   const cardBrandIcon = {
     visa: "💳",
     mastercard: "💳",
@@ -118,25 +83,35 @@ export function CreditCardForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {/* Card Number */}
       <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
           หมายเลขบัตร
         </label>
         <div className="relative">
-          <input
-            type="text"
-            value={formData.number}
-            onChange={handleCardNumberChange}
-            placeholder="0000 0000 0000 0000"
-            className={`w-full px-4 py-3 pr-12 border rounded-xl bg-white dark:bg-gray-800 
-              text-gray-900 dark:text-white placeholder-gray-400
-              focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-              transition-all duration-200
-              ${errors.number ? "border-red-500" : "border-gray-300 dark:border-gray-600"}`}
-            disabled={isLoading}
-            autoComplete="cc-number"
+          <Controller
+            control={control}
+            name="number"
+            render={({ field: { onChange, value, ...field } }) => (
+              <PatternFormat
+                {...field}
+                format="#### #### #### ####"
+                value={value}
+                onValueChange={(values) => {
+                  onChange(values.value);
+                  setCardBrand(getCardBrand(values.value));
+                }}
+                placeholder="0000 0000 0000 0000"
+                className={`w-full px-4 py-3 pr-12 border rounded-xl bg-white dark:bg-gray-800 
+                  text-gray-900 dark:text-white placeholder-gray-400
+                  focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                  transition-all duration-200
+                  ${errors.number ? "border-red-500" : "border-gray-300 dark:border-gray-600"}`}
+                disabled={isLoading}
+                autoComplete="cc-number"
+              />
+            )}
           />
           <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
             {cardBrand !== "unknown" && (
@@ -148,7 +123,7 @@ export function CreditCardForm({
           </div>
         </div>
         {errors.number && (
-          <p className="text-sm text-red-500">{errors.number}</p>
+          <p className="text-sm text-red-500">{errors.number.message}</p>
         )}
       </div>
 
@@ -159,8 +134,7 @@ export function CreditCardForm({
         </label>
         <input
           type="text"
-          value={formData.name}
-          onChange={handleChange("name")}
+          {...register("name")}
           placeholder="JOHN DOE"
           className={`w-full px-4 py-3 border rounded-xl bg-white dark:bg-gray-800 
             text-gray-900 dark:text-white placeholder-gray-400 uppercase
@@ -170,7 +144,9 @@ export function CreditCardForm({
           disabled={isLoading}
           autoComplete="cc-name"
         />
-        {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
+        {errors.name && (
+          <p className="text-sm text-red-500">{errors.name.message}</p>
+        )}
       </div>
 
       {/* Expiry & CVV */}
@@ -181,8 +157,7 @@ export function CreditCardForm({
             เดือน
           </label>
           <select
-            value={formData.expirationMonth}
-            onChange={handleChange("expirationMonth")}
+            {...register("expirationMonth")}
             className={`w-full px-4 py-3 border rounded-xl bg-white dark:bg-gray-800 
               text-gray-900 dark:text-white
               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
@@ -208,13 +183,12 @@ export function CreditCardForm({
             ปี
           </label>
           <select
-            value={formData.expirationYear}
-            onChange={handleChange("expirationYear")}
+            {...register("expirationYear")}
             className={`w-full px-4 py-3 border rounded-xl bg-white dark:bg-gray-800 
               text-gray-900 dark:text-white
               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
               transition-all duration-200
-              ${errors.expirationMonth ? "border-red-500" : "border-gray-300 dark:border-gray-600"}`}
+              ${errors.expirationYear ? "border-red-500" : "border-gray-300 dark:border-gray-600"}`}
             disabled={isLoading}
           >
             <option value="">YY</option>
@@ -235,29 +209,34 @@ export function CreditCardForm({
             CVV
           </label>
           <div className="relative">
-            <input
-              type="password"
-              value={formData.securityCode}
-              onChange={handleChange("securityCode")}
-              placeholder="•••"
-              maxLength={4}
-              className={`w-full px-4 py-3 border rounded-xl bg-white dark:bg-gray-800 
-                text-gray-900 dark:text-white placeholder-gray-400 text-center
-                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                transition-all duration-200
-                ${errors.securityCode ? "border-red-500" : "border-gray-300 dark:border-gray-600"}`}
-              disabled={isLoading}
-              autoComplete="cc-csc"
+            <Controller
+              control={control}
+              name="securityCode"
+              render={({ field }) => (
+                <PatternFormat
+                  {...field}
+                  format="####"
+                  placeholder="•••"
+                  className={`w-full px-4 py-3 border rounded-xl bg-white dark:bg-gray-800 
+                    text-gray-900 dark:text-white placeholder-gray-400 text-center
+                    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                    transition-all duration-200
+                    ${errors.securityCode ? "border-red-500" : "border-gray-300 dark:border-gray-600"}`}
+                  disabled={isLoading}
+                  autoComplete="cc-csc"
+                  type="password"
+                />
+              )}
             />
             <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           </div>
         </div>
       </div>
-      {errors.expirationMonth && (
-        <p className="text-sm text-red-500">{errors.expirationMonth}</p>
+      {(errors.expirationMonth || errors.expirationYear) && (
+        <p className="text-sm text-red-500">กรุณาระบุวันหมดอายุให้ครบถ้วน</p>
       )}
       {errors.securityCode && (
-        <p className="text-sm text-red-500">{errors.securityCode}</p>
+        <p className="text-sm text-red-500">{errors.securityCode.message}</p>
       )}
 
       {/* Security Notice */}

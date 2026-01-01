@@ -1,3 +1,3 @@
-export * from "../stores/features/chat/chat.query";
-export * from "../stores/features/property/property.query";
-export * from "../stores/features/user/user.query";
+export * from "@/hooks/queries/use-chat";
+export * from "@/hooks/queries/use-property";
+export * from "@/hooks/queries/use-user";

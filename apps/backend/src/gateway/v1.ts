@@ -16,6 +16,8 @@ import { demandsRoutes } from "@/modules/demands";
 import { bookingsRoutes } from "@/modules/bookings";
 import { dashboardRoutes } from "@/modules/dashboard";
 import { homeRoutes } from "@/modules/home";
+import { socialRoutes } from "@/modules/social/social.routes";
+import { shortsRoutes } from "@/modules/shorts/shorts.routes";
 
 const v1 = new Hono();
 
@@ -35,6 +37,9 @@ v1.route("/webhooks", webhookRoutes);
 v1.route("/demands", demandsRoutes);
 v1.route("/bookings", bookingsRoutes);
 v1.route("/dashboard", dashboardRoutes);
+
 v1.route("/home", homeRoutes);
+v1.route("/social", socialRoutes);
+v1.route("/shorts", shortsRoutes);
 
 export default v1;

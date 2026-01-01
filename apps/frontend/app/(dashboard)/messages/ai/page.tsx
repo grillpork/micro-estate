@@ -67,7 +67,7 @@ export default function AIMessagesPage() {
           })),
         });
 
-        const aiResponseData = response.data.data;
+        const aiResponseData = response.data;
 
         // Add AI response
         const aiMessage: Message = {
@@ -115,7 +115,7 @@ export default function AIMessagesPage() {
           participantId: agentId,
         }
       );
-      router.push(`/messages?id=${response.data.conversationId}`);
+      router.push(`/messages?id=${response.conversationId}`);
     } catch (error) {
       console.error("Failed to connect to agent:", error);
     }
@@ -123,8 +123,6 @@ export default function AIMessagesPage() {
 
   return (
     <div className="flex h-screen flex-col">
-      <Navbar />
-
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center gap-4 border-b px-4 py-3">

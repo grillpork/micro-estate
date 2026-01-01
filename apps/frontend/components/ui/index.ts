@@ -9,3 +9,6 @@ export * from "./textarea";
 export * from "./alert-dialog";
 export * from "./dropdown-menu";
 export * from "./scroll-area";
+export * from "./form-field";
+export * from "./select";
+export * from "./mask-input";

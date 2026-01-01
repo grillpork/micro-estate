@@ -1,4 +1,5 @@
 import { createMiddleware } from "hono/factory";
+import { Ratelimit } from "@upstash/ratelimit";
 import { redis } from "../services/redis";
 import { TooManyRequestsError } from "../errors";
 
@@ -12,10 +13,20 @@ interface RateLimitOptions {
 }
 
 /**
- * Rate limiter middleware using Redis
+ * Rate limiter middleware using @upstash/ratelimit
  */
 export const rateLimiter = (options: RateLimitOptions = {}) => {
   const { limit = 100, window = 60, prefix = "ratelimit" } = options;
+
+  // Create a new ratelimit instance
+  // We recreate it here to support dynamic options per route if needed,
+  // but typically this fits well with the Hono middleware factory pattern.
+  const ratelimit = new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(limit, `${window} s` as any),
+    analytics: true,
+    prefix,
+  });
 
   return createMiddleware(async (c, next) => {
     // Skip rate limiting in development
@@ -29,31 +40,35 @@ export const rateLimiter = (options: RateLimitOptions = {}) => {
       c.req.header("x-real-ip") ||
       "unknown";
 
-    const key = `${prefix}:${ip}`;
+    const identifier = ip;
 
-    // Get current count
-    const current = await redis.get<number>(key);
+    try {
+      const {
+        success,
+        limit: l,
+        remaining,
+        reset,
+      } = await ratelimit.limit(identifier);
 
-    if (current !== null && current >= limit) {
-      throw new TooManyRequestsError(
-        `Rate limit exceeded. Try again in ${window} seconds.`
-      );
+      // Set rate limit headers
+      c.header("X-RateLimit-Limit", l.toString());
+      c.header("X-RateLimit-Remaining", remaining.toString());
+      c.header("X-RateLimit-Reset", reset.toString());
+
+      if (!success) {
+        throw new TooManyRequestsError(
+          `Rate limit exceeded. Try again in ${window} seconds.`
+        );
+      }
+
+      await next();
+    } catch (error) {
+      if (error instanceof TooManyRequestsError) {
+        throw error;
+      }
+      // If redis fails, we should probably allow the request or log error
+      console.error("Rate limit error:", error);
+      await next();
     }
-
-    // Increment count
-    if (current === null) {
-      await redis.set(key, 1, { ex: window });
-    } else {
-      await redis.incr(key);
-    }
-
-    // Set rate limit headers
-    c.header("X-RateLimit-Limit", limit.toString());
-    c.header(
-      "X-RateLimit-Remaining",
-      Math.max(0, limit - (current || 0) - 1).toString()
-    );
-
-    await next();
   });
 };

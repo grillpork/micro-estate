@@ -59,7 +59,7 @@ export async function processDemandWithAI(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(input),
-      signal: AbortSignal.timeout(30000), // 30s timeout for AI processing
+      signal: AbortSignal.timeout(120000), // 120s timeout for AI processing
     });
 
     if (!response.ok) {
@@ -91,7 +91,7 @@ export async function generateEmbedding(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text }),
-      signal: AbortSignal.timeout(10000), // 10s timeout
+      signal: AbortSignal.timeout(300000), // 300s timeout
     });
 
     if (!response.ok) {
@@ -123,7 +123,7 @@ export async function generateEmbeddings(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ texts }),
-      signal: AbortSignal.timeout(30000), // 30s timeout for batch
+      signal: AbortSignal.timeout(300000), // 300s timeout for batch
     });
 
     if (!response.ok) {

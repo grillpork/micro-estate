@@ -8,14 +8,18 @@ import { env } from "../../config/env";
 import { BadRequestError } from "../../shared/errors";
 
 // Allowed file types
+// Allowed file types
 const ALLOWED_TYPES = [
   "image/jpeg",
   "image/png",
   "image/webp",
   "image/gif",
   "image/avif",
+  "video/mp4",
+  "video/quicktime",
+  "video/webm",
 ];
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
 // S3 Client singleton
 let s3Client: S3Client | null = null;
@@ -51,7 +55,7 @@ function getS3Client(): S3Client {
 /**
  * Upload single file to Cloudflare R2
  */
-export async function uploadFile(file: File) {
+export async function uploadFile(file: File, folder: string = "uploads") {
   // Validate file type
   if (!ALLOWED_TYPES.includes(file.type)) {
     throw new BadRequestError(
@@ -77,7 +81,12 @@ export async function uploadFile(file: File) {
 
   // Generate unique key
   const ext = file.name.split(".").pop() || "jpg";
-  const key = `uploads/${nanoid()}.${ext}`;
+  // Remove leading/trailing slashes and sanitize to prevent directory traversal
+  const cleanFolder = folder
+    .replace(/^\/+|\/+$/g, "") // Remove leading/trailing slashes
+    .replace(/\.\./g, "") // Remove '..'
+    .replace(/\/+/g, "/"); // Collapse multiple slashes
+  const key = `${cleanFolder}/${nanoid()}.${ext}`;
 
   try {
     const client = getS3Client();
@@ -114,8 +123,8 @@ export async function uploadFile(file: File) {
 /**
  * Upload multiple files
  */
-export async function uploadFiles(files: File[]) {
-  return Promise.all(files.map(uploadFile));
+export async function uploadFiles(files: File[], folder: string = "uploads") {
+  return Promise.all(files.map((file) => uploadFile(file, folder)));
 }
 
 /**

@@ -11,6 +11,25 @@ import { updateUserSchema } from "./users.schema";
 
 export const usersRoutes = new Hono<AppEnv>();
 
+// Get user public profile (for chat - returns limited info)
+usersRoutes.get(
+  "/profile/:id",
+  zValidator("param", idParamSchema),
+  async (c) => {
+    const { id } = c.req.valid("param");
+    const user = await service.getUserById(id);
+    if (!user) throw new NotFoundError("User");
+
+    // Return only public information
+    return success(c, {
+      id: user.id,
+      name: user.name,
+      image: user.image,
+      role: user.role,
+    });
+  }
+);
+
 // All routes require authentication
 usersRoutes.use("/*", authMiddleware);
 
@@ -55,25 +74,6 @@ usersRoutes.get(
     const { q } = c.req.valid("query");
     const results = await service.searchUsers(q, user.id);
     return success(c, results);
-  }
-);
-
-// Get user public profile (for chat - returns limited info)
-usersRoutes.get(
-  "/profile/:id",
-  zValidator("param", idParamSchema),
-  async (c) => {
-    const { id } = c.req.valid("param");
-    const user = await service.getUserById(id);
-    if (!user) throw new NotFoundError("User");
-
-    // Return only public information
-    return success(c, {
-      id: user.id,
-      name: user.name,
-      image: user.image,
-      role: user.role,
-    });
   }
 );
 

@@ -63,6 +63,7 @@ export const properties = pgTable("properties", {
 
   // Location
   address: text("address"),
+  subDistrict: text("sub_district"),
   district: text("district"),
   province: text("province"),
   postalCode: text("postal_code"),

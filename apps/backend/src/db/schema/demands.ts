@@ -45,6 +45,7 @@ export const demandPosts = pgTable("demand_posts", {
   // Location
   province: text("province"),
   district: text("district"),
+  subDistrict: text("sub_district"),
   nearBts: text("near_bts"), // ชื่อสถานี BTS (optional)
   nearMrt: text("near_mrt"), // ชื่อสถานี MRT (optional)
 

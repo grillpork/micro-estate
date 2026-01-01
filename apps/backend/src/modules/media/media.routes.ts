@@ -10,17 +10,45 @@ export const mediaRoutes = new Hono<AppEnv>();
 // All routes require authentication
 mediaRoutes.use("/*", authMiddleware);
 
+// Map types to specific folders
+const UPLOAD_MAP: Record<string, string> = {
+  property: "uploads/images/properties",
+  short: "uploads/videos/shorts",
+  avatar: "uploads/images/avatars",
+  chat: "uploads/images/chat",
+  default: "uploads",
+};
+
+function getUploadFolder(type?: string): string {
+  return UPLOAD_MAP[type as keyof typeof UPLOAD_MAP] || UPLOAD_MAP.default;
+}
+
 // Upload single file
 mediaRoutes.post("/upload", async (c) => {
-  const body = await c.req.parseBody();
-  const file = body["file"] as File;
+  try {
+    const formData = await c.req.formData();
+    const file = formData.get("file") as File;
+    const type = formData.get("type") as string;
 
-  if (!file) {
-    throw new BadRequestError("No file provided");
+    console.log("Upload request debug:", {
+      fileType: file?.type,
+      size: file?.size,
+      name: file?.name,
+      type,
+    });
+
+    if (!file) {
+      console.error("No file found in form data");
+      throw new BadRequestError("No file provided");
+    }
+
+    const folder = getUploadFolder(type);
+    const result = await service.uploadFile(file, folder);
+    return success(c, result);
+  } catch (err) {
+    console.error("Upload route error:", err);
+    throw err;
   }
-
-  const result = await service.uploadFile(file);
-  return success(c, result);
 });
 
 // Upload multiple files
@@ -39,7 +67,10 @@ mediaRoutes.post("/upload/multiple", async (c) => {
     throw new BadRequestError("No files provided");
   }
 
-  const results = await service.uploadFiles(files as File[]);
+  const type = body["type"] as string;
+  const folder = getUploadFolder(type);
+
+  const results = await service.uploadFiles(files as File[], folder);
   return success(c, results);
 });
 
@@ -59,7 +90,8 @@ mediaRoutes.post("/upload/chat", async (c) => {
     throw new BadRequestError("No files provided");
   }
 
-  const results = await service.uploadFiles(files as File[]);
+  // Force chat folder for this specific endpoint
+  const results = await service.uploadFiles(files as File[], UPLOAD_MAP.chat);
   // Return in format expected by frontend: { urls: string[] }
   return success(c, { urls: results.map((r) => r.url) });
 });

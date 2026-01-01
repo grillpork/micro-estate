@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Navbar } from "@/components/layout";
 import { ChatWindow, ChatSidebar } from "@/components/chat";
@@ -12,7 +12,7 @@ import { Bot, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import type { ConversationPreview, Message, User } from "@/types";
 
-export default function MessagesPage() {
+function MessagesContent() {
   const searchParams = useSearchParams();
   const conversationId = searchParams.get("id");
   const { data: session, isPending: isSessionPending } = useSession();
@@ -33,6 +33,7 @@ export default function MessagesPage() {
     setLoadingMessages,
     setSending,
     markAsRead,
+    removeMessage,
   } = useChatStore();
 
   const [recipient, setRecipient] = useState<User | null>(null);
@@ -156,7 +157,7 @@ export default function MessagesPage() {
         // Send via WebSocket
         const sent = send("chat:message", {
           receiverId: activeConversationId,
-          content,
+          content: content.trim() || undefined,
           imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
         });
 
@@ -164,7 +165,7 @@ export default function MessagesPage() {
           // Fallback to REST API
           const message = await chatService.sendMessage(
             activeConversationId,
-            content,
+            content.trim() || undefined,
             imageUrls
           );
           addMessage(activeConversationId, message);
@@ -176,6 +177,27 @@ export default function MessagesPage() {
       }
     },
     [activeConversationId, session, send, addMessage, setSending]
+  );
+
+  const handleDeleteMessage = useCallback(
+    async (messageId: string) => {
+      if (!activeConversationId) return;
+
+      if (!confirm("คุณต้องการลบข้อความนี้ใช่หรือไม่?")) {
+        return;
+      }
+
+      // Optimistic update
+      removeMessage(activeConversationId, messageId);
+
+      try {
+        await chatService.deleteMessage(messageId);
+      } catch (error) {
+        console.error("Failed to delete message:", error);
+        // Could reload messages here to revert
+      }
+    },
+    [activeConversationId, removeMessage]
   );
 
   const handleSelectConversation = (id: string) => {
@@ -205,9 +227,7 @@ export default function MessagesPage() {
   const showChat = !isMobile || activeConversationId;
 
   return (
-    <div className="flex h-screen flex-col">
-      <Navbar />
-
+    <div className="flex w-full h-full flex-col overflow-hidden">
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
         {showSidebar && (
@@ -236,6 +256,7 @@ export default function MessagesPage() {
                   )?.isOnline || false
                 }
                 onSendMessage={handleSendMessage}
+                onDeleteMessage={handleDeleteMessage}
                 onBack={handleBack}
                 className="flex-1"
               />
@@ -262,5 +283,19 @@ export default function MessagesPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function MessagesPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          <Spinner size="lg" />
+        </div>
+      }
+    >
+      <MessagesContent />
+    </Suspense>
   );
 }

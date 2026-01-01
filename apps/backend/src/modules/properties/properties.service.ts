@@ -23,16 +23,27 @@ import {
   setPropertyAmenities,
   getPropertyAmenities,
 } from "../amenities/amenities.service";
+import {
+  redis,
+  getOrSet,
+  cacheKeys,
+  invalidate,
+} from "../../shared/services/redis";
+import { CACHE_TTL } from "../../shared/constants";
 
 /**
  * Generate URL-friendly slug from title
  */
 function generateSlug(title: string): string {
-  return `${title
+  // Support Thai characters (\u0E00-\u0E7F) and basic latin
+  const cleanedTitle = title
     .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/[^\u0E00-\u0E7Fa-z0-9\s-]/g, "")
+    .trim()
     .replace(/\s+/g, "-")
-    .substring(0, 50)}-${nanoid(8)}`;
+    .replace(/-+/g, "-");
+
+  return `${cleanedTitle.substring(0, 100)}-${nanoid(8)}`;
 }
 
 /**
@@ -119,60 +130,95 @@ export async function getProperties(query: PropertyQuery) {
  * Get property by ID
  */
 export async function getPropertyById(id: string) {
-  const [property] = await db
-    .select()
-    .from(properties)
-    .where(eq(properties.id, id))
-    .limit(1);
+  return getOrSet(
+    cacheKeys.property(id),
+    async () => {
+      const [property] = await db
+        .select()
+        .from(properties)
+        .where(eq(properties.id, id))
+        .limit(1);
 
-  if (!property) {
-    throw new NotFoundError("Property");
-  }
+      if (!property) {
+        throw new NotFoundError("Property");
+      }
 
-  // Get images
-  const images = await db
-    .select()
-    .from(propertyImages)
-    .where(eq(propertyImages.propertyId, id))
-    .orderBy(asc(propertyImages.order));
+      // Get images
+      const images = await db
+        .select()
+        .from(propertyImages)
+        .where(eq(propertyImages.propertyId, id))
+        .orderBy(asc(propertyImages.order));
 
-  // Get amenities
-  const amenities = await getPropertyAmenities(id);
+      // Get amenities
+      const amenities = await getPropertyAmenities(id);
 
-  return { ...property, images, amenities };
+      return { ...property, images, amenities };
+    },
+    CACHE_TTL.SHORT
+  );
 }
 
 /**
  * Get property by slug
  */
 export async function getPropertyBySlug(slug: string) {
+<<<<<<< HEAD
   const [property] = await db
     .select()
     .from(properties)
     .where(or(eq(properties.slug, slug), eq(properties.id, slug)))
     .limit(1);
+=======
+  const data = await getOrSet(
+    cacheKeys.propertySlug(slug),
+    async () => {
+      const [property] = await db
+        .select()
+        .from(properties)
+        .where(eq(properties.slug, slug))
+        .limit(1);
+>>>>>>> 3f33e72 (feat: Add new UI components, chat features, and services, while updating admin layout, backend user service, and frontend pages.)
 
-  if (!property) {
-    throw new NotFoundError("Property");
+      if (!property) {
+        throw new NotFoundError("Property");
+      }
+
+      // Get images
+      const images = await db
+        .select()
+        .from(propertyImages)
+        .where(eq(propertyImages.propertyId, property.id))
+        .orderBy(asc(propertyImages.order));
+
+      // Get amenities
+      const amenities = await getPropertyAmenities(property.id);
+
+      return { ...property, images, amenities };
+    },
+    CACHE_TTL.SHORT
+  );
+
+  // Increment views (fire and forget)
+  incrementPropertyViews(data.id).catch(console.error);
+
+  return data;
+}
+
+/**
+ * Get property by ID or Slug
+ */
+export async function getPropertyByIdOrSlug(term: string) {
+  try {
+    // Try by slug first as it's the preferred method
+    return await getPropertyBySlug(term);
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      // If not found by slug, try by ID
+      return await getPropertyById(term);
+    }
+    throw error;
   }
-
-  // Increment views
-  await db
-    .update(properties)
-    .set({ views: sql`${properties.views} + 1` })
-    .where(eq(properties.id, property.id));
-
-  // Get images
-  const images = await db
-    .select()
-    .from(propertyImages)
-    .where(eq(propertyImages.propertyId, property.id))
-    .orderBy(asc(propertyImages.order));
-
-  // Get amenities
-  const amenities = await getPropertyAmenities(property.id);
-
-  return { ...property, images, amenities };
 }
 
 /**
@@ -215,6 +261,7 @@ export async function createProperty(
       floors: data.floors,
       yearBuilt: data.yearBuilt,
       address: data.address,
+      subDistrict: data.subDistrict,
       district: data.district,
       province: data.province,
       postalCode: data.postalCode,
@@ -292,6 +339,7 @@ export async function updateProperty(
       floors: data.floors,
       yearBuilt: data.yearBuilt,
       address: data.address,
+      subDistrict: data.subDistrict,
       district: data.district,
       province: data.province,
       postalCode: data.postalCode,
@@ -316,22 +364,25 @@ export async function updateProperty(
       .from(propertyImages)
       .where(eq(propertyImages.propertyId, id));
 
-    // Delete old images from R2 storage
-    for (const oldImage of oldImages) {
-      // Extract key from URL (e.g., "https://...r2.dev/uploads/xxx.jpg" -> "uploads/xxx.jpg")
-      const urlParts = oldImage.url.split("/");
-      const key = urlParts.slice(-2).join("/"); // Get last 2 parts: "uploads/filename.ext"
+    const newImageUrls = new Set(data.images.map((img) => img.url));
 
-      try {
-        await deleteFile(key);
-        console.log("Deleted old image from R2:", key);
-      } catch (error) {
-        console.error("Failed to delete old image from R2:", key, error);
-        // Continue even if delete fails
+    // Delete old images from R2 storage ONLY if they are not in the new list
+    for (const oldImage of oldImages) {
+      if (!newImageUrls.has(oldImage.url)) {
+        // Extract key from URL
+        const urlParts = oldImage.url.split("/");
+        const key = urlParts.slice(-2).join("/");
+
+        try {
+          await deleteFile(key);
+          console.log("Deleted old image from R2:", key);
+        } catch (error) {
+          console.error("Failed to delete old image from R2:", key, error);
+        }
       }
     }
 
-    // Delete old images from database
+    // Delete all old image records from database (we'll re-insert them to update order/metadata)
     await db.delete(propertyImages).where(eq(propertyImages.propertyId, id));
 
     // Insert new images
@@ -354,6 +405,12 @@ export async function updateProperty(
       amenityIds.map((amenityId) => ({ amenityId }))
     );
   }
+
+  // Invalidate cache
+  await Promise.all([
+    invalidate(cacheKeys.property(id)),
+    invalidate(cacheKeys.propertySlug(existing.slug)),
+  ]);
 
   return property;
 }
@@ -401,6 +458,12 @@ export async function deleteProperty(id: string, userId: string) {
 
   // Delete property (images will be cascade deleted)
   await db.delete(properties).where(eq(properties.id, id));
+
+  // Invalidate cache
+  await Promise.all([
+    invalidate(cacheKeys.property(id)),
+    invalidate(cacheKeys.propertySlug(existing.slug)),
+  ]);
 
   return { deleted: true };
 }
@@ -472,6 +535,12 @@ export async function approveProperty(id: string) {
       console.error(`Error creating property embedding: ${error}`);
     });
 
+  // Invalidate cache
+  await invalidate(cacheKeys.property(id));
+  if (existing.slug) {
+    await invalidate(cacheKeys.propertySlug(existing.slug));
+  }
+
   return updated;
 }
 
@@ -499,15 +568,21 @@ export async function rejectProperty(id: string, reason: string) {
     .where(eq(properties.id, id))
     .returning();
 
+  // Invalidate cache
+  await invalidate(cacheKeys.property(id));
+  if (existing.slug) {
+    await invalidate(cacheKeys.propertySlug(existing.slug));
+  }
+
   return updated;
 }
 
 // Increment property views
-export async function incrementPropertyViews(id: string): Promise<void> {
+export async function incrementPropertyViews(term: string): Promise<void> {
   await db
     .update(properties)
     .set({
       views: sql`${properties.views} + 1`,
     })
-    .where(eq(properties.id, id));
+    .where(or(eq(properties.id, term), eq(properties.slug, term)));
 }

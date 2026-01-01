@@ -88,7 +88,7 @@ export async function updateProfileImage(userId: string, file: File) {
   }
 
   // Upload new image
-  const result = await uploadFile(file);
+  const result = await uploadFile(file, "upload/images/avatars");
 
   // Update user with new image URL
   const [updatedUser] = await db

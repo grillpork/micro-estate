@@ -114,8 +114,9 @@ demandsRoutes.get(
 
     const matches = await matching.getDemandMatches(id);
     const count = await matching.countDemandMatches(id);
+    const recommendations = await matching.getRecommendedProperties(id, 3);
 
-    return success(c, { matches, total: count });
+    return success(c, { matches, recommendations, total: count });
   }
 );
 
@@ -169,7 +170,7 @@ demandsRoutes.patch(
 demandsRoutes.get(
   "/public",
   authMiddleware,
-  agentOrAdmin,
+  // agentOrAdmin, // Allow all users to view demands for now
   zValidator("query", demandQuerySchema),
   async (c) => {
     const query = c.req.valid("query");
